@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Customization indicators — wireframes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .canvas-bg {
+      background-image: radial-gradient(circle, #e7e5e4 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+  </style>
+</head>
+<body class="bg-stone-50 min-h-screen pb-20">
+
+  <div class="h-14 bg-white border-b border-stone-200 flex items-center px-6">
+    <a href="index.html" class="text-sm text-stone-500 hover:text-stone-900">← Gallery</a>
+    <div class="h-4 w-px bg-stone-200 mx-3"></div>
+    <div class="text-sm font-medium text-stone-900">Wireframes</div>
+    <span class="text-stone-300 mx-2">/</span>
+    <div class="text-sm text-stone-500">Customization indicators</div>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-8 py-14">
+    <div class="max-w-2xl">
+      <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Action cards</div>
+      <h1 class="text-3xl font-semibold text-stone-900 mt-2 tracking-tight">Distinguishing customized actions</h1>
+      <p class="text-stone-600 mt-3 leading-relaxed">
+        On the canvas, every action card looks the same regardless of whether the clinic added custom instructions. Below are six visual cues — from least to most prominent — for telling a vanilla action from one with a custom prompt.
+      </p>
+      <p class="text-xs text-stone-500 mt-3">"Custom" here = the clinic edited the <em>Additional instructions</em> field for that action. (Capability toggles, intake field edits, and inbox routing changes could each get their own indicator if needed; this page focuses on the prompt.)</p>
+    </div>
+
+    <!-- Legend showing the baseline -->
+    <div class="mt-14 p-6 bg-white border border-stone-200 rounded-2xl">
+      <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Baseline (no indicator)</div>
+      <p class="text-xs text-stone-500 mt-1">What we ship today — identical cards regardless of customization state.</p>
+      <div class="mt-5 canvas-bg p-8 rounded-xl flex items-start gap-6">
+        ${actionCard({ variant: 'baseline', state: 'vanilla' })}
+        ${actionCard({ variant: 'baseline', state: 'custom' })}
+      </div>
+    </div>
+
+    <!-- Variants -->
+    <div class="mt-10 grid grid-cols-2 gap-6">
+
+      <!-- A: Pencil icon corner -->
+      <div class="p-6 bg-white border border-stone-200 rounded-2xl">
+        <div class="flex items-baseline justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Option A</div>
+            <h2 class="text-lg font-semibold text-stone-900 mt-1">Pencil corner icon</h2>
+          </div>
+          <span class="text-xs px-1.5 py-0.5 bg-stone-100 text-stone-700 rounded">minimal</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">Tiny ✎ in the top-right when there's a custom prompt. Whisper-quiet; reads as "this has been touched."</p>
+        <div class="mt-5 canvas-bg p-6 rounded-xl flex items-start gap-4">
+          ${actionCard({ variant: 'A', state: 'vanilla' })}
+          ${actionCard({ variant: 'A', state: 'custom' })}
+        </div>
+        <p class="text-[11px] text-stone-500 mt-3">+ subtle, low-noise · − easy to miss if you're not looking</p>
+      </div>
+
+      <!-- B: Footer chip -->
+      <div class="p-6 bg-white border border-stone-200 rounded-2xl">
+        <div class="flex items-baseline justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Option B</div>
+            <h2 class="text-lg font-semibold text-stone-900 mt-1">Footer chip</h2>
+          </div>
+          <span class="text-xs px-1.5 py-0.5 bg-stone-100 text-stone-700 rounded">explicit</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">Pinned "✎ Custom instructions" chip at the bottom. Reads as a label, not just decoration.</p>
+        <div class="mt-5 canvas-bg p-6 rounded-xl flex items-start gap-4">
+          ${actionCard({ variant: 'B', state: 'vanilla' })}
+          ${actionCard({ variant: 'B', state: 'custom' })}
+        </div>
+        <p class="text-[11px] text-stone-500 mt-3">+ unambiguous · − adds vertical height to card</p>
+      </div>
+
+      <!-- C: Left edge stripe -->
+      <div class="p-6 bg-white border border-stone-200 rounded-2xl">
+        <div class="flex items-baseline justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Option C</div>
+            <h2 class="text-lg font-semibold text-stone-900 mt-1">Left edge stripe</h2>
+          </div>
+          <span class="text-xs px-1.5 py-0.5 bg-stone-100 text-stone-700 rounded">peripheral</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">3px amber stripe on the left edge. Scannable across many cards without reading anything.</p>
+        <div class="mt-5 canvas-bg p-6 rounded-xl flex items-start gap-4">
+          ${actionCard({ variant: 'C', state: 'vanilla' })}
+          ${actionCard({ variant: 'C', state: 'custom' })}
+        </div>
+        <p class="text-[11px] text-stone-500 mt-3">+ great for scanning a long column · − competes with the existing purple-border treatment for custom intents</p>
+      </div>
+
+      <!-- D: Background tint -->
+      <div class="p-6 bg-white border border-stone-200 rounded-2xl">
+        <div class="flex items-baseline justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Option D</div>
+            <h2 class="text-lg font-semibold text-stone-900 mt-1">Background tint</h2>
+          </div>
+          <span class="text-xs px-1.5 py-0.5 bg-stone-100 text-stone-700 rounded">subtle</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">Faint cream background for customized cards. The card feels "warm" without any explicit label.</p>
+        <div class="mt-5 canvas-bg p-6 rounded-xl flex items-start gap-4">
+          ${actionCard({ variant: 'D', state: 'vanilla' })}
+          ${actionCard({ variant: 'D', state: 'custom' })}
+        </div>
+        <p class="text-[11px] text-stone-500 mt-3">+ ambient, never in the way · − might read as "highlighted/active" instead of "customized"</p>
+      </div>
+
+      <!-- E: Prompt preview -->
+      <div class="p-6 bg-white border border-stone-200 rounded-2xl">
+        <div class="flex items-baseline justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Option E</div>
+            <h2 class="text-lg font-semibold text-stone-900 mt-1">Prompt preview line</h2>
+          </div>
+          <span class="text-xs px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded">most informative</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">Show the first ~40 chars of the custom prompt right on the card, italicized. You see <em>what</em> was customized at a glance.</p>
+        <div class="mt-5 canvas-bg p-6 rounded-xl flex items-start gap-4">
+          ${actionCard({ variant: 'E', state: 'vanilla' })}
+          ${actionCard({ variant: 'E', state: 'custom' })}
+        </div>
+        <p class="text-[11px] text-stone-500 mt-3">+ semantic — answers "what's different here?" · − card grows; long prompts truncate awkwardly</p>
+      </div>
+
+      <!-- F: Connection line accent -->
+      <div class="p-6 bg-white border border-stone-200 rounded-2xl">
+        <div class="flex items-baseline justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Option F</div>
+            <h2 class="text-lg font-semibold text-stone-900 mt-1">Connection-line accent</h2>
+          </div>
+          <span class="text-xs px-1.5 py-0.5 bg-stone-100 text-stone-700 rounded">canvas-level</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">The line from intent → action turns amber (or dashed) when the action has custom instructions. The signal is the relationship, not the card.</p>
+        <div class="mt-5 canvas-bg p-6 rounded-xl">
+          <div class="flex items-center gap-1">
+            <div class="w-32 bg-white border border-stone-200 rounded-xl p-3 shadow-sm shrink-0">
+              <div class="text-sm font-medium text-stone-900">Billing</div>
+            </div>
+            <svg width="48" height="40" class="shrink-0"><path d="M 0 20 C 16 20, 32 20, 44 20" stroke="#d6d3d1" stroke-width="2" fill="none"/><polygon points="42,17 48,20 42,23" fill="#d6d3d1"/></svg>
+            ${actionCard({ variant: 'baseline', state: 'vanilla', compact: true })}
+          </div>
+          <div class="mt-3 flex items-center gap-1">
+            <div class="w-32 bg-white border border-stone-200 rounded-xl p-3 shadow-sm shrink-0">
+              <div class="text-sm font-medium text-stone-900">Clinical</div>
+            </div>
+            <svg width="48" height="40" class="shrink-0"><path d="M 0 20 C 16 20, 32 20, 44 20" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="4 3" fill="none"/><polygon points="42,17 48,20 42,23" fill="#f59e0b"/></svg>
+            ${actionCard({ variant: 'baseline', state: 'vanilla', compact: true })}
+          </div>
+        </div>
+        <p class="text-[11px] text-stone-500 mt-3">+ unique to flow-builder UI, signals the relationship · − the line is small and easy to miss when zoomed out</p>
+      </div>
+
+    </div>
+
+    <!-- Combo recommendation -->
+    <div class="mt-10 p-7 bg-stone-900 text-stone-100 rounded-2xl">
+      <div class="text-xs font-medium text-emerald-300 uppercase tracking-widest">A combo worth trying</div>
+      <h2 class="text-xl font-semibold text-white mt-2">Pencil corner (A) + Prompt preview (E)</h2>
+      <p class="text-sm text-stone-300 mt-2 max-w-2xl leading-relaxed">
+        The pencil corner is the always-on cue — quietly tells you "this has been edited" even when the prompt is short. The prompt preview is the informational layer — when you slow down to read a card, you immediately see <em>what</em> changed. Together they're scannable AND meaningful, without competing with the existing custom-intent purple border or override badge.
+      </p>
+      <div class="mt-5 canvas-bg p-6 rounded-xl flex items-start gap-4">
+        ${actionCard({ variant: 'combo', state: 'vanilla' })}
+        ${actionCard({ variant: 'combo', state: 'custom' })}
+      </div>
+    </div>
+
+    <!-- Implementation notes -->
+    <div class="mt-10 p-6 bg-stone-100/60 border border-stone-200 rounded-2xl">
+      <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Implementation notes</div>
+      <ul class="text-sm text-stone-700 mt-3 space-y-2 list-disc pl-5 leading-relaxed">
+        <li><strong>Signal source:</strong> <span class="mono text-xs bg-white px-1.5 py-0.5 border border-stone-200 rounded">action.prompt</span> is non-empty AND differs from a stored "platform default" (so a clinic who left the default text alone isn't marked custom).</li>
+        <li><strong>Conflict with override badge:</strong> When an intent is also overridden in a mode, the orange "override" badge already sits top-right. Pencil corner would need to sit top-left or coexist.</li>
+        <li><strong>Conflict with intent's custom-intent purple border:</strong> That's on the <em>intent</em> node, not the <em>action</em> node, so they don't overlap visually — but worth checking when both are present.</li>
+        <li><strong>Editor side mirroring:</strong> Whatever cue ships on the canvas should also indicate "this section has been customized" on the editor panel — e.g. the collapsed "Additional instructions" header shows a dot when non-empty.</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <script>
+    // Inline component for action cards — used in the template strings above by string replacement.
+    // This is a static wireframe, so we substitute at load via simple regex.
+    document.body.innerHTML = document.body.innerHTML.replace(/\$\{actionCard\(([^)]+)\)\}/g, (match, args) => {
+      const opts = JSON.parse(args.replace(/(\w+):/g, '"$1":').replace(/'/g, '"'));
+      return renderActionCard(opts);
+    });
+
+    function renderActionCard({ variant, state, compact }) {
+      const isCustom = state === 'custom';
+      const w = compact ? 'w-48' : 'w-56';
+      const promptPreview = '"Flag urgent if they mention chest pain or shortness of breath…"';
+
+      let extraClass = 'bg-white border border-stone-200';
+      let cornerBadge = '';
+      let footerChip = '';
+      let stripe = '';
+      let previewLine = '';
+
+      if (variant === 'A' && isCustom) {
+        cornerBadge = `<div class="absolute top-2 right-2 text-stone-400 text-xs">✎</div>`;
+      }
+      if (variant === 'B' && isCustom) {
+        footerChip = `<div class="mt-2.5 pt-2.5 border-t border-stone-100 text-[11px] text-stone-500 flex items-center gap-1">✎ Custom instructions</div>`;
+      }
+      if (variant === 'C' && isCustom) {
+        stripe = `<div class="absolute top-0 bottom-0 left-0 w-[3px] bg-amber-400 rounded-l-xl"></div>`;
+      }
+      if (variant === 'D' && isCustom) {
+        extraClass = 'bg-amber-50/40 border border-amber-100';
+      }
+      if (variant === 'E' && isCustom) {
+        previewLine = `<div class="mt-1.5 text-[11px] text-stone-500 italic leading-snug line-clamp-2">${promptPreview}</div>`;
+      }
+      if (variant === 'combo' && isCustom) {
+        cornerBadge = `<div class="absolute top-2 right-2 text-amber-500 text-xs">✎</div>`;
+        previewLine = `<div class="mt-1.5 text-[11px] text-stone-500 italic leading-snug line-clamp-2">${promptPreview}</div>`;
+      }
+
+      return `
+        <div class="relative ${w} ${extraClass} rounded-xl p-3 shadow-sm">
+          ${stripe}
+          ${cornerBadge}
+          <div class="text-sm text-stone-900">Take a message</div>
+          <div class="text-xs text-stone-500 mt-0.5">→ Clinical team</div>
+          ${previewLine}
+          ${footerChip}
+        </div>
+      `;
+    }
+  </script>
+
+</body>
+</html>

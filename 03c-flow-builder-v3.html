@@ -64,8 +64,8 @@
       </div>
 
       <div id="canvas-transform" class="canvas-bg absolute top-0 left-0" style="width: 1300px; height: 900px; transform-origin: 0 0; transform: translate(0px, 0px) scale(1); will-change: transform;">
-        <svg id="canvas-svg" class="absolute top-0 left-0 pointer-events-none" style="width: 1300px; height: 900px"></svg>
-        <div id="canvas-nodes" class="relative" style="width: 1300px; height: 900px"></div>
+        <svg id="canvas-svg" class="absolute top-0 left-0 pointer-events-none" style="width: 1700px; height: 900px"></svg>
+        <div id="canvas-nodes" class="relative" style="width: 1700px; height: 900px"></div>
       </div>
 
       <div class="absolute bottom-6 right-6 bg-white border border-stone-200 rounded-lg shadow-sm flex items-center divide-x divide-stone-100 z-10">
@@ -185,6 +185,7 @@
       business: {
         label: "Business hours · Monday–Friday 9am–5pm",
         intents: [
+          { id: 'urgent',     name: 'Urgent',     examples: ['this is urgent', "I'm having chest pain", 'I need help right now'], action: { type: 'transfer', targets: ['(415) 555-0911'] } },
           { id: 'scheduling', name: 'Scheduling', examples: ['I need to book an appointment', 'Can I reschedule my Tuesday visit?', 'Cancel my Friday appointment'], action: { type: 'transfer', targets: ['(415) 555-0142'] } },
           { id: 'medication', name: 'Medication', examples: ['I need a refill on my blood-pressure med', 'The pharmacy says my prescription expired', "What's the status of my prior auth?"], action: { type: 'transfer', targets: ['(415) 555-0182'] } },
           { id: 'billing',    name: 'Billing',    examples: ["I got a bill I don't understand", 'Set up a payment plan', 'Did my insurance cover the lab work?'], action: { type: 'message',  prompt: 'Collect: caller name, account/MRN if they have it, callback number, and a brief description of the billing question.', inbox: 'billing' } },
@@ -196,6 +197,7 @@
       lunch: {
         label: "Lunch · 12pm–1pm",
         intents: [
+          { id: 'urgent',     name: 'Urgent',     examples: ['this is urgent', "I'm having chest pain", 'I need help right now'], action: { type: 'transfer', targets: ['(415) 555-0911'] } },
           { id: 'scheduling', name: 'Scheduling', examples: ['I need to book an appointment'], action: { type: 'message',  prompt: 'Take down the caller name and what they want to schedule. The scheduling team will call back within an hour.', inbox: 'front_desk' }, overridden: true },
           { id: 'medication', name: 'Medication', examples: ['I need a refill on my blood-pressure med'], action: { type: 'transfer', targets: ['(415) 555-0182'] } },
           { id: 'billing',    name: 'Billing',    examples: ["I got a bill I don't understand"], action: { type: 'message',  prompt: 'Collect: caller name and a brief description of the billing question.', inbox: 'billing' } },
@@ -207,7 +209,7 @@
       afterhours: {
         label: "After hours · Mon–Fri after 5pm + weekends",
         intents: [
-          { id: 'urgent',     name: 'Urgent / emergency', custom: true, examples: ['chest pain', 'emergency', 'this is urgent'], action: { type: 'transfer', targets: ['(415) 555-0911', '(415) 555-0912'] } },
+          { id: 'urgent',     name: 'Urgent',     examples: ['this is urgent', "I'm having chest pain", 'I need help right now'], action: { type: 'transfer', targets: ['(415) 555-0911', '(415) 555-0912'] } },
           { id: 'scheduling', name: 'Scheduling', examples: ['I need to book an appointment'], action: { type: 'message', prompt: 'Take a message — scheduling will call back in the morning.', inbox: 'front_desk' }, overridden: true },
           { id: 'medication', name: 'Medication', examples: ['I need a refill on my blood-pressure med'], action: { type: 'message', prompt: 'Take down name, DOB, medication, and pharmacy. Refill queue handles in the morning.', inbox: 'front_desk' }, overridden: true },
           { id: 'billing',    name: 'Billing',    examples: ["I got a bill I don't understand"], action: { type: 'message', prompt: 'Take down the caller name and callback number.', inbox: 'billing' } },
@@ -227,6 +229,21 @@
       });
     });
 
+    // Welcome message state — applied to every call regardless of intent.
+    const WELCOME_PRESETS = {
+      warm:    { label: 'Warm professional', text: "Thanks for calling Sterling Family Care. How may I help you today?" },
+      concise: { label: 'Concise',           text: "Sterling Family Care. How can I help?" },
+      brief:   { label: 'Brief',             text: "Hi, how can I help you today?" },
+      custom:  { label: 'Custom',            text: "" },
+    };
+    const welcomeState = { preset: 'warm', customText: '' };
+
+    function currentWelcomeText() {
+      return welcomeState.preset === 'custom'
+        ? (welcomeState.customText || '(write your custom greeting)')
+        : WELCOME_PRESETS[welcomeState.preset].text;
+    }
+
     let activeMode = 'business';
 
     const $nodes = document.getElementById('canvas-nodes');
@@ -243,19 +260,39 @@
       $svg.innerHTML = '';
 
       $nodes.appendChild(makeStartNode());
+      $nodes.appendChild(makeWelcomeNode());
       $nodes.appendChild(makeClassifyNode());
 
       flow.intents.forEach((intent, i) => {
         const top = 30 + i * 115;
         $nodes.appendChild(makeIntentNode(intent, top));
         $nodes.appendChild(makeActionNode(intent, top));
-        drawConnection(580, 110, 720, top + 30, `c-classify-${intent.id}`);
-        drawConnection(920, top + 30, 1020, top + 30, `c-${intent.id}-action`);
+        drawConnection(860, 110, 1000, top + 30, `c-classify-${intent.id}`);
+        drawConnection(1200, top + 30, 1300, top + 30, `c-${intent.id}-action`);
       });
 
       const addTop = 30 + flow.intents.length * 115;
       $nodes.appendChild(makeAddIntentButton(addTop));
-      drawConnection(280, 110, 380, 110, 'c-start-classify');
+      drawConnection(280, 110, 380, 110, 'c-start-welcome');
+      drawConnection(580, 110, 660, 110, 'c-welcome-classify');
+    }
+
+    function makeWelcomeNode() {
+      const el = document.createElement('div');
+      el.className = 'flow-node absolute';
+      el.style.left = '380px'; el.style.top = '80px';
+      el.dataset.nodeId = 'welcome';
+      const text = currentWelcomeText();
+      const truncated = text.length > 56 ? text.substring(0, 56) + '…' : text;
+      const styleLabel = WELCOME_PRESETS[welcomeState.preset].label;
+      el.innerHTML = `
+        <div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+          <div class="text-sm font-medium text-stone-900">Welcome message</div>
+          <div class="text-[10px] font-medium text-stone-400 uppercase tracking-wider mt-0.5">${styleLabel}</div>
+          <div class="text-xs text-stone-500 mt-1 italic">"${truncated}"</div>
+        </div>`;
+      el.addEventListener('click', openWelcomePanel);
+      return el;
     }
 
     function makeStartNode() {
@@ -273,7 +310,7 @@
     function makeClassifyNode() {
       const el = document.createElement('div');
       el.className = 'flow-node absolute';
-      el.style.left = '380px'; el.style.top = '80px';
+      el.style.left = '660px'; el.style.top = '80px';
       el.dataset.nodeId = 'classify';
       el.innerHTML = `
         <div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
@@ -286,7 +323,7 @@
     function makeIntentNode(intent, top) {
       const el = document.createElement('div');
       el.className = 'flow-node absolute';
-      el.style.left = '720px'; el.style.top = `${top}px`;
+      el.style.left = '1000px'; el.style.top = `${top}px`;
       el.dataset.nodeId = `intent-${intent.id}`;
       const ring = intent.custom ? 'border-2 border-purple-300 bg-purple-50/30' : 'border border-stone-200 bg-white';
       const triggerLine = intent.custom && intent.examples?.[0]
@@ -304,11 +341,16 @@
     function makeActionNode(intent, top) {
       const el = document.createElement('div');
       el.className = 'flow-node absolute';
-      el.style.left = '1020px'; el.style.top = `${top}px`;
+      el.style.left = '1300px'; el.style.top = `${top}px`;
       el.dataset.nodeId = `action-${intent.id}`;
       const a = intent.action;
-      const targetCount = a.targets?.length || 0;
-      const detailLine = a.type === 'transfer' ? `Transfer${targetCount > 1 ? `<div class="text-xs text-stone-500 mt-0.5">${targetCount} numbers</div>` : ''}`
+      const targets = a.targets || [];
+      const visibleTargets = targets.slice(0, 3);
+      const overflow = Math.max(0, targets.length - 3);
+      const transferDetail = targets.length === 0
+        ? `Transfer<div class="text-xs text-stone-500 mt-0.5">No number set</div>`
+        : `Transfer to<div class="mt-1 space-y-0.5 text-xs text-stone-700 font-mono">${visibleTargets.map(t => `<div class="truncate">${t}</div>`).join('')}</div>${overflow > 0 ? `<div class="text-xs text-stone-500 mt-0.5 flex items-center gap-1"><span>+${overflow} more</span><span class="text-stone-400">▾</span></div>` : ''}`;
+      const detailLine = a.type === 'transfer' ? transferDetail
                        : a.type === 'message'  ? `Take a message<div class="text-xs text-stone-500 mt-0.5">→ ${inboxLabel(a.inbox)}</div>`
                        : a.type === 'schedule' ? `Schedule in EHR<div class="text-xs text-stone-500 mt-0.5">${((a.capabilities || []).map(c => ({ book:'Book', reschedule:'Reschedule', cancel:'Cancel' })[c]).filter(Boolean).join(' · ')) || 'No actions enabled'}</div>`
                        : '';
@@ -338,7 +380,7 @@
     function makeAddIntentButton(top) {
       const el = document.createElement('div');
       el.className = 'absolute';
-      el.style.left = '720px'; el.style.top = `${top}px`;
+      el.style.left = '1000px'; el.style.top = `${top}px`;
       el.innerHTML = `
         <div class="relative">
           <button id="add-intent-trigger" class="w-48 border border-dashed border-stone-300 rounded-xl px-3 py-3 text-sm text-stone-500 hover:text-stone-900 hover:border-stone-500 hover:bg-white transition flex items-center justify-center gap-1.5 group">
@@ -396,6 +438,71 @@
     const $sidePanel = document.getElementById('side-panel');
     const $panelTitle = document.getElementById('panel-title');
     const $panelBody = document.getElementById('panel-body');
+
+    function openWelcomePanel() {
+      document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('selected'));
+      document.querySelector('[data-node-id="welcome"]')?.classList.add('selected');
+      $panelTitle.textContent = 'Welcome message';
+      $panelBody.innerHTML = renderWelcomeBody();
+      wireWelcomePanel();
+      $sidePanel.classList.remove('hidden');
+    }
+
+    function renderWelcomeBody() {
+      const isCustom = welcomeState.preset === 'custom';
+      return `
+        <div class="p-5 space-y-5">
+          <p class="text-xs text-stone-500">Sage's opening line on every call, before classifying the caller's intent.</p>
+
+          <div>
+            <label class="text-xs font-medium text-stone-700">Style</label>
+            <div class="mt-2 space-y-1.5">
+              ${Object.entries(WELCOME_PRESETS).map(([key, p]) => `
+                <label class="welcome-preset block p-2.5 border ${welcomeState.preset === key ? 'border-stone-900 bg-stone-50' : 'border-stone-200 bg-white hover:border-stone-300'} rounded-lg cursor-pointer transition">
+                  <div class="flex items-start gap-2.5">
+                    <input type="radio" name="welcome-preset" value="${key}" ${welcomeState.preset === key ? 'checked' : ''} class="mt-0.5" />
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-medium text-stone-900">${p.label}</div>
+                      ${key !== 'custom'
+                        ? `<div class="text-xs text-stone-600 mt-0.5 italic">"${p.text}"</div>`
+                        : `<div class="text-xs text-stone-500 mt-0.5">Write your own greeting below.</div>`}
+                    </div>
+                  </div>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+
+          ${isCustom ? `
+            <div>
+              <label class="text-xs font-medium text-stone-700">Custom greeting</label>
+              <textarea id="welcome-custom" rows="3" placeholder="e.g., Thanks for calling. How may I help you today?" class="mt-1.5 w-full px-3 py-2.5 text-sm bg-white border border-stone-200 rounded-md resize-none focus:outline-none focus:border-stone-400">${welcomeState.customText}</textarea>
+              <p class="text-[11px] text-stone-500 mt-1">Played verbatim at the start of every call. Keep it under one sentence.</p>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function wireWelcomePanel() {
+      $panelBody.querySelectorAll('input[name="welcome-preset"]').forEach(r => {
+        r.addEventListener('change', () => {
+          welcomeState.preset = r.value;
+          $panelBody.innerHTML = renderWelcomeBody();
+          wireWelcomePanel();
+          render();
+          markDirty();
+        });
+      });
+      const customTextarea = document.getElementById('welcome-custom');
+      if (customTextarea) {
+        customTextarea.addEventListener('input', () => {
+          welcomeState.customText = customTextarea.value;
+          render();
+          markDirty();
+        });
+      }
+    }
 
     function openIntentPanel(intentId) {
       const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
@@ -1021,7 +1128,15 @@
             fieldLibrary: FIELD_LIBRARY,
           }),
         });
-        const data = await resp.json();
+        const raw = await resp.text();
+        let data;
+        try {
+          data = JSON.parse(raw);
+        } catch {
+          thinkingEl.remove();
+          appendTestMessage('assistant', `Server returned non-JSON (status ${resp.status}):\n${raw.substring(0, 500)}`);
+          return;
+        }
         thinkingEl.remove();
         if (data.error) {
           appendTestMessage('assistant', 'Error: ' + data.error);
@@ -1189,137 +1304,22 @@
       applyTransform();
     });
 
-    // ============================================================
-    // Draft / Publish state for free-text prompts
-    // ============================================================
-
-    // Initialize the published baseline so we can detect edits.
-    Object.values(FLOWS).forEach(flow => {
-      flow.intents.forEach(intent => {
-        if (intent.action.type === 'message') {
-          intent.action._publishedPrompt = intent.action.prompt || '';
-        }
-      });
-    });
-
-    function isIntentDraft(intent) {
-      const a = intent.action;
-      if (a.type !== 'message') return false;
-      return a._publishedPrompt !== undefined && a.prompt !== a._publishedPrompt;
-    }
-
-    function countDrafts() {
-      let count = 0;
-      Object.values(FLOWS).forEach(flow => {
-        flow.intents.forEach(intent => { if (isIntentDraft(intent)) count++; });
-      });
-      return count;
-    }
-
-    function updateDraftState() {
-      const count = countDrafts();
-      const pill = document.getElementById('draft-pill');
-      const btn  = document.getElementById('publish-btn');
-      if (!pill || !btn) return;
-      if (count === 0) {
-        pill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>All published';
-        pill.className = 'text-xs text-stone-500 flex items-center gap-1.5';
-        btn.disabled = true;
-        btn.className = 'text-sm bg-stone-200 text-stone-400 px-3 py-1.5 rounded-md cursor-not-allowed';
-        btn.textContent = 'Publish';
-      } else {
-        pill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>${count} unpublished change${count === 1 ? '' : 's'}`;
-        pill.className = 'text-xs text-amber-700 flex items-center gap-1.5';
-        btn.disabled = false;
-        btn.className = 'text-sm bg-stone-900 text-white px-3 py-1.5 rounded-md hover:bg-stone-800';
-        btn.textContent = `Publish ${count}`;
-      }
-    }
-
+    // Lightweight prompt-input handler — just keeps the counter live
+    // and lets the model state mirror what's in the textarea.
+    // (Drag/draft state is managed by the simple isDirty flag in markDirty/markPublished above.)
     function handlePromptInput(textarea) {
       const intentId = textarea.dataset.intentId;
       const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
       if (!intent) return;
       intent.action.prompt = textarea.value;
-      // counter
       const counter = document.getElementById('prompt-counter');
       if (counter) {
         const len = textarea.value.length;
         counter.textContent = `${len}/${PROMPT_LIMIT}`;
         counter.className = `text-[11px] tabular-nums ${len > 400 ? 'text-amber-600' : 'text-stone-400'}`;
       }
-      // draft pill
-      updateDraftState();
-      // inline preview removed
+      markDirty();
     }
-
-    function renderDraftPreview(intent) {
-      if (!isIntentDraft(intent)) return '';
-      const a = intent.action;
-      const before = a._publishedPrompt || '';
-      const after  = a.prompt || '';
-      return `
-        <div class="p-4 bg-stone-900 text-stone-100 rounded-xl">
-          <div class="flex items-baseline justify-between mb-3">
-            <div class="text-xs font-medium text-emerald-300 uppercase tracking-widest">Preview · what will change</div>
-            <span class="text-[10px] text-stone-400">draft</span>
-          </div>
-          <div class="space-y-3 text-sm">
-            <div>
-              <div class="text-[10px] uppercase tracking-wider text-stone-500 mb-1">Inbox (won't change)</div>
-              <div class="text-stone-300">${a.inbox}</div>
-            </div>
-            <div>
-              <div class="text-[10px] uppercase tracking-wider text-stone-500 mb-1">Live now (published)</div>
-              <div class="text-stone-300 italic">"${(before || '—').slice(0, 200)}${before.length > 200 ? '…' : ''}"</div>
-            </div>
-            <div>
-              <div class="text-[10px] uppercase tracking-wider text-emerald-300 mb-1">After publish (your draft)</div>
-              <div class="text-white italic">"${(after || '—').slice(0, 200)}${after.length > 200 ? '…' : ''}"</div>
-            </div>
-          </div>
-          <div class="mt-4 pt-3 border-t border-stone-700 flex items-center justify-between">
-            <span class="text-[11px] text-stone-400">Goes live for incoming calls after you Publish.</span>
-            <button id="preview-test-btn" class="text-xs px-2.5 py-1 bg-stone-700 text-white rounded hover:bg-stone-600">Run a test call →</button>
-          </div>
-        </div>`;
-    }
-
-    function publishAll() {
-      Object.values(FLOWS).forEach(flow => {
-        flow.intents.forEach(intent => {
-          if (intent.action.type === 'message') {
-            intent.action._publishedPrompt = intent.action.prompt;
-          }
-        });
-      });
-      updateDraftState();
-      // re-render any open panel so the "unpublished" badge clears + preview closes
-      const open = document.querySelector('.flow-node.selected[data-node-id^="intent-"], .flow-node.selected[data-node-id^="action-"]');
-      if (open) {
-        const id = open.dataset.nodeId.replace(/^(intent|action)-/, '');
-        const intent = FLOWS[activeMode].intents.find(i => i.id === id);
-        if (intent) {
-          $panelBody.innerHTML = renderIntentBody(intent);
-          wirePanelInteractions(intent);
-        }
-      }
-    }
-
-    document.getElementById('publish-btn').addEventListener('click', () => {
-      if (countDrafts() === 0) return;
-      publishAll();
-    });
-
-    // Hook test-call button inside the inline preview (event-delegated since it's re-rendered)
-    document.getElementById('side-panel').addEventListener('click', (e) => {
-      if (e.target && e.target.id === 'preview-test-btn') {
-        $drawer.classList.remove('collapsed');
-        $drawerIcon.textContent = '▾';
-      }
-    });
-
-    updateDraftState();
   </script>
 
 </body>
