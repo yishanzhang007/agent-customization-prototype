@@ -229,19 +229,13 @@
       });
     });
 
-    // Welcome message state — applied to every call regardless of intent.
-    const WELCOME_PRESETS = {
-      warm:    { label: 'Warm professional', text: "Thanks for calling Sterling Family Care. How may I help you today?" },
-      concise: { label: 'Concise',           text: "Sterling Family Care. How can I help?" },
-      brief:   { label: 'Brief',             text: "Hi, how can I help you today?" },
-      custom:  { label: 'Custom',            text: "" },
+    // Welcome message — directly editable text, applied to every call.
+    const welcomeState = {
+      text: "Thanks for calling Sterling Family Care. How may I help you today?",
     };
-    const welcomeState = { preset: 'warm', customText: '' };
 
     function currentWelcomeText() {
-      return welcomeState.preset === 'custom'
-        ? (welcomeState.customText || '(write your custom greeting)')
-        : WELCOME_PRESETS[welcomeState.preset].text;
+      return welcomeState.text || '(write a welcome message)';
     }
 
     // Seed each message action's _defaultPrompt so we can detect customization
@@ -293,13 +287,11 @@
       el.style.left = '380px'; el.style.top = '80px';
       el.dataset.nodeId = 'welcome';
       const text = currentWelcomeText();
-      const truncated = text.length > 56 ? text.substring(0, 56) + '…' : text;
-      const styleLabel = WELCOME_PRESETS[welcomeState.preset].label;
+      const truncated = text.length > 90 ? text.substring(0, 90) + '…' : text;
       el.innerHTML = `
-        <div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+        <div class="w-48 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
           <div class="text-sm font-medium text-stone-900">Welcome message</div>
-          <div class="text-[10px] font-medium text-stone-400 uppercase tracking-wider mt-0.5">${styleLabel}</div>
-          <div class="text-xs text-stone-500 mt-1 italic">"${truncated}"</div>
+          <div class="text-xs text-stone-500 mt-1 italic leading-snug">"${truncated}"</div>
         </div>`;
       el.addEventListener('click', openWelcomePanel);
       return el;
@@ -324,7 +316,7 @@
       el.dataset.nodeId = 'classify';
       el.innerHTML = `
         <div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
-          <div class="text-sm font-medium text-stone-900">What is the caller asking about?</div>
+          <div class="text-sm font-medium text-stone-900">Decides caller intent</div>
           <div class="text-xs text-stone-500 mt-0.5">${FLOWS[activeMode].intents.length} intents</div>
         </div>`;
       return el;
@@ -465,55 +457,26 @@
     }
 
     function renderWelcomeBody() {
-      const isCustom = welcomeState.preset === 'custom';
       return `
-        <div class="p-5 space-y-5">
+        <div class="p-5 space-y-4">
           <p class="text-xs text-stone-500">Sage's opening line on every call, before classifying the caller's intent.</p>
 
           <div>
-            <label class="text-xs font-medium text-stone-700">Style</label>
-            <div class="mt-2 space-y-1.5">
-              ${Object.entries(WELCOME_PRESETS).map(([key, p]) => `
-                <label class="welcome-preset block p-2.5 border ${welcomeState.preset === key ? 'border-stone-900 bg-stone-50' : 'border-stone-200 bg-white hover:border-stone-300'} rounded-lg cursor-pointer transition">
-                  <div class="flex items-start gap-2.5">
-                    <input type="radio" name="welcome-preset" value="${key}" ${welcomeState.preset === key ? 'checked' : ''} class="mt-0.5" />
-                    <div class="flex-1 min-w-0">
-                      <div class="text-sm font-medium text-stone-900">${p.label}</div>
-                      ${key !== 'custom'
-                        ? `<div class="text-xs text-stone-600 mt-0.5 italic">"${p.text}"</div>`
-                        : `<div class="text-xs text-stone-500 mt-0.5">Write your own greeting below.</div>`}
-                    </div>
-                  </div>
-                </label>
-              `).join('')}
-            </div>
+            <label class="text-xs font-medium text-stone-700">Welcome message</label>
+            <textarea id="welcome-text" rows="4" placeholder="e.g., Thanks for calling Sterling Family Care. How may I help you today?" class="mt-1.5 w-full px-3 py-2.5 text-sm bg-white border border-stone-200 rounded-md resize-none focus:outline-none focus:border-stone-400">${welcomeState.text}</textarea>
+            <p class="text-[11px] text-stone-500 mt-1.5 leading-snug">
+              Played verbatim at the start of every call. Keep it short — one sentence — so callers can interrupt with their request.
+            </p>
           </div>
-
-          ${isCustom ? `
-            <div>
-              <label class="text-xs font-medium text-stone-700">Custom greeting</label>
-              <textarea id="welcome-custom" rows="3" placeholder="e.g., Thanks for calling. How may I help you today?" class="mt-1.5 w-full px-3 py-2.5 text-sm bg-white border border-stone-200 rounded-md resize-none focus:outline-none focus:border-stone-400">${welcomeState.customText}</textarea>
-              <p class="text-[11px] text-stone-500 mt-1">Played verbatim at the start of every call. Keep it under one sentence.</p>
-            </div>
-          ` : ''}
         </div>
       `;
     }
 
     function wireWelcomePanel() {
-      $panelBody.querySelectorAll('input[name="welcome-preset"]').forEach(r => {
-        r.addEventListener('change', () => {
-          welcomeState.preset = r.value;
-          $panelBody.innerHTML = renderWelcomeBody();
-          wireWelcomePanel();
-          render();
-          markDirty();
-        });
-      });
-      const customTextarea = document.getElementById('welcome-custom');
-      if (customTextarea) {
-        customTextarea.addEventListener('input', () => {
-          welcomeState.customText = customTextarea.value;
+      const textarea = document.getElementById('welcome-text');
+      if (textarea) {
+        textarea.addEventListener('input', () => {
+          welcomeState.text = textarea.value;
           render();
           markDirty();
         });
@@ -966,18 +929,7 @@
     });
 
     // Live character counter for the free-text rider
-    function handlePromptInput(textarea) {
-      const len = textarea.value.length;
-      const counter = document.getElementById('prompt-counter');
-      if (counter) {
-        counter.textContent = `${len}/${PROMPT_LIMIT}`;
-        counter.className = `text-[11px] tabular-nums ${len > 400 ? 'text-amber-600' : 'text-stone-400'}`;
-      }
-      const intentId = textarea.dataset.intentId;
-      const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
-      if (intent) intent.action.prompt = textarea.value;
-      markDirty();
-    }
+    // (handlePromptInput defined below — see the canonical version after this block)
 
     // Close menu on outside-click (single listener, not re-bound)
     document.addEventListener('click', (e) => {
@@ -1334,6 +1286,8 @@
         counter.textContent = `${len}/${PROMPT_LIMIT}`;
         counter.className = `text-[11px] tabular-nums ${len > 400 ? 'text-amber-600' : 'text-stone-400'}`;
       }
+      // Repaint the canvas action card so the customization tint reflects the current state
+      refreshActionNodeCard(intent);
       markDirty();
     }
   </script>
