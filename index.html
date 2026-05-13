@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Customization — UX Explorations</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+  </style>
+</head>
+<body class="bg-stone-50 min-h-screen">
+  <div class="max-w-5xl mx-auto py-20 px-8">
+    <div class="max-w-2xl">
+      <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Front Desk · UX explorations</div>
+      <h1 class="text-4xl font-semibold text-stone-900 mt-3 tracking-tight">Configuring intent-specific instructions</h1>
+      <p class="text-stone-600 mt-4 leading-relaxed">
+        Four different UX directions for letting clinic staff author what the agent should do for each kind of call.
+        Same underlying data model, fundamentally different mental models.
+      </p>
+    </div>
+
+    <div class="mt-16 grid grid-cols-2 gap-5">
+
+      <a href="01-list-detail.html" class="group block p-7 bg-white border border-stone-200/80 rounded-2xl hover:border-stone-400 hover:shadow-sm transition">
+        <div class="flex items-center justify-between">
+          <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">Option 1</div>
+          <div class="text-xs text-stone-400 group-hover:text-stone-700 transition">→</div>
+        </div>
+        <h2 class="text-xl font-semibold text-stone-900 mt-3">List + detail</h2>
+        <p class="text-sm text-stone-600 mt-2 leading-relaxed">
+          Familiar email-client layout. Sidebar list of intents, structured form on the right. Every intent uses the same form — default and custom alike.
+        </p>
+        <div class="mt-5 flex flex-wrap gap-1.5">
+          <span class="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded-md">structured</span>
+          <span class="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded-md">low learning curve</span>
+          <span class="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded-md">scales to many intents</span>
+        </div>
+      </a>
+
+      <a href="02-conversation-author.html" class="group block p-7 bg-white border border-stone-200/80 rounded-2xl hover:border-stone-400 hover:shadow-sm transition">
+        <div class="flex items-center justify-between">
+          <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">Option 2</div>
+          <div class="text-xs text-stone-400 group-hover:text-stone-700 transition">→</div>
+        </div>
+        <h2 class="text-xl font-semibold text-stone-900 mt-3">Conversation simulator</h2>
+        <p class="text-sm text-stone-600 mt-2 leading-relaxed">
+          Author by example. Replay a call transcript; click any AI response to "teach" the rule behind it. Most novel — mirrors how clinic staff actually think.
+        </p>
+        <div class="mt-5 flex flex-wrap gap-1.5">
+          <span class="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded-md">novel</span>
+          <span class="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded-md">example-based</span>
+          <span class="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded-md">test = author</span>
+        </div>
+      </a>
+
+      <a href="03-flow-builder.html" class="group block p-7 bg-white border border-stone-200/80 rounded-2xl hover:border-stone-400 hover:shadow-sm transition">
+        <div class="flex items-center justify-between">
+          <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">Option 3 · v1</div>
+          <div class="text-xs text-stone-400 group-hover:text-stone-700 transition">→</div>
+        </div>
+        <h2 class="text-xl font-semibold text-stone-900 mt-3">Visual flow builder</h2>
+        <p class="text-sm text-stone-600 mt-2 leading-relaxed">
+          Canvas with nodes. Call routes through intent classification into action nodes. Pattern validated by Weave's drag-drop routing flowchart.
+        </p>
+        <div class="mt-5 flex flex-wrap gap-1.5">
+          <span class="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded-md">visual</span>
+          <span class="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded-md">competitor-validated</span>
+          <span class="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded-md">power-user</span>
+        </div>
+      </a>
+
+      <a href="03b-flow-builder-v2.html" class="group block p-7 bg-stone-100 border border-stone-200/80 rounded-2xl hover:border-stone-400 hover:shadow-sm transition">
+        <div class="flex items-center justify-between">
+          <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">Option 3 · v2</div>
+          <div class="text-xs text-stone-400 group-hover:text-stone-700 transition">→</div>
+        </div>
+        <h2 class="text-xl font-semibold text-stone-900 mt-3">v2 — Interactive iteration</h2>
+        <p class="text-sm text-stone-600 mt-2 leading-relaxed">
+          Click nodes to edit, switch modes to see overrides, run a test simulator that lights up the route. Action panel is light — single say-first field.
+        </p>
+        <div class="mt-5 flex flex-wrap gap-1.5">
+          <span class="text-xs bg-white text-stone-700 px-2 py-1 rounded-md border border-stone-200">click to edit</span>
+          <span class="text-xs bg-white text-stone-700 px-2 py-1 rounded-md border border-stone-200">3 modes</span>
+          <span class="text-xs bg-white text-stone-700 px-2 py-1 rounded-md border border-stone-200">test sim</span>
+        </div>
+      </a>
+
+      <a href="03c-flow-builder-v3.html" class="group block p-7 bg-stone-900 text-white rounded-2xl hover:bg-stone-800 transition col-span-2">
+        <div class="flex items-center justify-between">
+          <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">Option 3 · v3 — conditional editor</div>
+          <div class="text-xs text-stone-400 group-hover:text-white transition">→</div>
+        </div>
+        <h2 class="text-xl font-semibold mt-3">Hand-off vs. handle-it</h2>
+        <p class="text-sm text-stone-300 mt-2 leading-relaxed max-w-2xl">
+          Right panel collapses to match the action. Pick a <strong>hand-off</strong> action (Transfer / Direct / SMS / End) and you only fill in a destination plus an optional one-liner. Pick a <strong>handle-it</strong> action (Take a message / Answer with KB / Schedule / Prep for approval) and a prompt textarea appears. Most intents become a 2-field config.
+        </p>
+        <div class="mt-5 flex flex-wrap gap-1.5">
+          <span class="text-xs bg-stone-800 text-stone-300 px-2 py-1 rounded-md border border-stone-700">conditional fields</span>
+          <span class="text-xs bg-stone-800 text-stone-300 px-2 py-1 rounded-md border border-stone-700">prompt only when AI handles</span>
+          <span class="text-xs bg-stone-800 text-stone-300 px-2 py-1 rounded-md border border-stone-700">8 action types · grouped</span>
+          <span class="text-xs bg-stone-800 text-stone-300 px-2 py-1 rounded-md border border-stone-700">click to switch instantly</span>
+        </div>
+      </a>
+
+      <a href="04-sentence-rules.html" class="group block p-7 bg-white border border-stone-200/80 rounded-2xl hover:border-stone-400 hover:shadow-sm transition">
+        <div class="flex items-center justify-between">
+          <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">Option 4</div>
+          <div class="text-xs text-stone-400 group-hover:text-stone-700 transition">→</div>
+        </div>
+        <h2 class="text-xl font-semibold text-stone-900 mt-3">Natural-language rules</h2>
+        <p class="text-sm text-stone-600 mt-2 leading-relaxed">
+          Compose IF-THEN sentences with inline dropdowns. Reads like English. Familiar from Zapier / IFTTT / Slack Workflow Builder.
+        </p>
+        <div class="mt-5 flex flex-wrap gap-1.5">
+          <span class="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded-md">readable</span>
+          <span class="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded-md">composable</span>
+          <span class="text-xs bg-stone-100 text-stone-700 px-2 py-1 rounded-md">progressive</span>
+        </div>
+      </a>
+
+    </div>
+
+    <div class="mt-16 p-6 bg-stone-100/60 border border-stone-200/80 rounded-2xl">
+      <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">How to use these</div>
+      <p class="text-sm text-stone-600 mt-2 leading-relaxed">
+        Each prototype uses the same sample data (5 default intents + 1 custom: "Clinical trial inquiry"). They're not connected to a backend; nothing persists. The goal is to compare mental models — which one feels like the right authoring surface for a clinic admin?
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>

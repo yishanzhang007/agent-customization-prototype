@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Option 4 · Natural-Language Rules</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 3px; }
+    .pill-dropdown { transition: all 0.15s; }
+    .pill-dropdown:hover { background: #f5f5f4; }
+  </style>
+</head>
+<body class="bg-stone-50 min-h-screen">
+
+  <!-- Top bar -->
+  <div class="h-14 bg-white border-b border-stone-200 flex items-center justify-between px-6">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="text-sm text-stone-500 hover:text-stone-900">← Gallery</a>
+      <div class="h-4 w-px bg-stone-200"></div>
+      <div class="text-sm font-medium text-stone-900">Agent Settings</div>
+      <span class="text-stone-300">/</span>
+      <div class="text-sm text-stone-500">Rules</div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="text-sm text-stone-600 hover:text-stone-900 px-3 py-1.5 rounded-md hover:bg-stone-100">Test the agent</button>
+      <button class="text-sm bg-stone-900 text-white px-3 py-1.5 rounded-md hover:bg-stone-800">Publish 6 changes</button>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto px-8 py-12">
+
+    <!-- Header -->
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">How Sage handles calls</div>
+        <h1 class="text-3xl font-semibold text-stone-900 mt-2 tracking-tight">Conversation rules</h1>
+        <p class="text-stone-500 mt-2 max-w-xl leading-relaxed">
+          Each rule reads like a sentence. The agent picks the first matching rule and follows it.
+          You can write rules for any intent and override behavior per mode.
+        </p>
+      </div>
+      <div class="flex items-center gap-1 bg-stone-100 rounded-md p-0.5">
+        <button class="text-xs px-2.5 py-1 bg-white text-stone-900 rounded shadow-sm">All</button>
+        <button class="text-xs px-2.5 py-1 text-stone-600 hover:text-stone-900">Business hrs</button>
+        <button class="text-xs px-2.5 py-1 text-stone-600 hover:text-stone-900">After hrs</button>
+        <button class="text-xs px-2.5 py-1 text-stone-600 hover:text-stone-900">Lunch</button>
+      </div>
+    </div>
+
+    <!-- Rule 1: Refill -->
+    <div class="mt-10 bg-white border border-stone-200 rounded-2xl overflow-hidden">
+      <div class="px-6 pt-5 pb-3 flex items-center justify-between border-b border-stone-100">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-full bg-stone-100 flex items-center justify-center text-xs font-medium text-stone-700">1</div>
+          <div>
+            <div class="text-sm font-medium text-stone-900">Medication refill rule</div>
+            <div class="text-xs text-stone-500">Active in all modes · 0 fired today</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-1">
+          <label class="inline-flex items-center gap-2 mr-2">
+            <span class="text-xs text-stone-500">Active</span>
+            <div class="relative inline-block w-8 h-4 bg-emerald-500 rounded-full">
+              <div class="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full"></div>
+            </div>
+          </label>
+          <button class="text-stone-400 hover:text-stone-900 px-2">⋯</button>
+        </div>
+      </div>
+
+      <div class="px-6 py-6 leading-loose text-stone-700">
+        <span class="text-sm">When the caller is asking about</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-stone-100 rounded-md text-sm font-medium text-stone-900">
+          medication refills <span class="text-stone-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">, the agent should</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-blue-50 text-blue-900 rounded-md text-sm font-medium">
+          direct them elsewhere <span class="text-blue-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">by saying</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-stone-100 rounded-md text-sm font-medium text-stone-900 max-w-md text-left align-middle">
+          <span class="italic font-normal text-stone-700">"call the pharmacy directly… ask if they've had a check-in in the past year"</span> <span class="text-stone-400 text-xs">✎</span>
+        </button>
+        <span class="text-sm">. Before redirecting, collect</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-stone-100 rounded-md text-sm font-medium text-stone-900">
+          caller name, DOB, pharmacy <span class="text-stone-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">.</span>
+      </div>
+    </div>
+
+    <!-- Rule 2: Scheduling -->
+    <div class="mt-4 bg-white border border-stone-200 rounded-2xl overflow-hidden">
+      <div class="px-6 pt-5 pb-3 flex items-center justify-between border-b border-stone-100">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-full bg-stone-100 flex items-center justify-center text-xs font-medium text-stone-700">2</div>
+          <div>
+            <div class="text-sm font-medium text-stone-900">Scheduling rule</div>
+            <div class="text-xs text-stone-500">Active in business hours · 4 fired today</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-1">
+          <label class="inline-flex items-center gap-2 mr-2">
+            <span class="text-xs text-stone-500">Active</span>
+            <div class="relative inline-block w-8 h-4 bg-emerald-500 rounded-full">
+              <div class="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full"></div>
+            </div>
+          </label>
+          <button class="text-stone-400 hover:text-stone-900 px-2">⋯</button>
+        </div>
+      </div>
+
+      <div class="px-6 py-6 leading-loose text-stone-700">
+        <span class="text-sm">When the caller is asking about</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-stone-100 rounded-md text-sm font-medium text-stone-900">
+          scheduling an appointment <span class="text-stone-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">, the agent should</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-blue-50 text-blue-900 rounded-md text-sm font-medium">
+          transfer to a person <span class="text-blue-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">at</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-stone-100 rounded-md text-sm font-medium text-stone-900">
+          (415) 555-0142 <span class="text-stone-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">. Before transferring, briefly say</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-stone-100 rounded-md text-sm font-medium text-stone-900 max-w-md align-middle">
+          <span class="italic font-normal text-stone-700">"I'll get you to someone who can book that right now"</span> <span class="text-stone-400 text-xs">✎</span>
+        </button>
+        <span class="text-sm">.</span>
+      </div>
+
+      <!-- After-hours override -->
+      <div class="mx-6 mb-5 pl-3 border-l-2 border-stone-200 leading-loose text-stone-600">
+        <div class="flex items-center gap-2 -ml-3 mb-2">
+          <span class="text-xs px-1.5 py-0.5 bg-stone-100 text-stone-600 rounded">After hours override</span>
+        </div>
+        <span class="text-sm">When in</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2 py-0.5 bg-white border border-stone-200 rounded text-sm text-stone-700">
+          after hours <span class="text-stone-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">, instead</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2 py-0.5 bg-blue-50 text-blue-900 rounded text-sm">
+          take a message <span class="text-blue-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">and send to the scheduling inbox.</span>
+      </div>
+    </div>
+
+    <!-- Rule 3: Billing (collapsed view) -->
+    <div class="mt-4 bg-white border border-stone-200 rounded-2xl px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-7 h-7 rounded-full bg-stone-100 flex items-center justify-center text-xs font-medium text-stone-700">3</div>
+        <div class="leading-loose text-stone-700 text-sm">
+          When the caller is asking about
+          <span class="px-2 py-0.5 bg-stone-100 rounded text-stone-900 font-medium">billing</span>,
+          <span class="px-2 py-0.5 bg-blue-50 text-blue-900 rounded font-medium">take a message</span>
+          and send to the billing inbox.
+        </div>
+      </div>
+      <button class="text-stone-400 hover:text-stone-900 text-xs">Expand ▾</button>
+    </div>
+
+    <!-- Rule 4: Clinical -->
+    <div class="mt-4 bg-white border border-stone-200 rounded-2xl px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-7 h-7 rounded-full bg-stone-100 flex items-center justify-center text-xs font-medium text-stone-700">4</div>
+        <div class="leading-loose text-stone-700 text-sm">
+          When the caller is asking
+          <span class="px-2 py-0.5 bg-stone-100 rounded text-stone-900 font-medium">a clinical question</span>,
+          <span class="px-2 py-0.5 bg-blue-50 text-blue-900 rounded font-medium">take a message</span>,
+          flag urgency, and send to
+          <span class="px-2 py-0.5 bg-stone-100 rounded text-stone-900 font-medium">nurse triage</span>.
+        </div>
+      </div>
+      <button class="text-stone-400 hover:text-stone-900 text-xs">Expand ▾</button>
+    </div>
+
+    <!-- Rule 5: Clinical trial (custom) -->
+    <div class="mt-4 bg-white border-2 border-purple-200 rounded-2xl overflow-hidden">
+      <div class="px-6 pt-5 pb-3 flex items-center justify-between border-b border-purple-100">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center text-xs font-medium text-purple-700">5</div>
+          <div>
+            <div class="text-sm font-medium text-stone-900 flex items-center gap-1.5">
+              Clinical trial inquiry <span class="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">custom</span>
+            </div>
+            <div class="text-xs text-stone-500">Active in all modes · 12 fired this week</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-1">
+          <label class="inline-flex items-center gap-2 mr-2">
+            <span class="text-xs text-stone-500">Active</span>
+            <div class="relative inline-block w-8 h-4 bg-emerald-500 rounded-full">
+              <div class="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full"></div>
+            </div>
+          </label>
+          <button class="text-stone-400 hover:text-stone-900 px-2">⋯</button>
+        </div>
+      </div>
+
+      <div class="px-6 py-6 leading-loose text-stone-700">
+        <span class="text-sm">When the caller is asking about</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-purple-50 text-purple-900 rounded-md text-sm font-medium">
+          clinical trials <span class="text-purple-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">, the agent should</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-blue-50 text-blue-900 rounded-md text-sm font-medium">
+          answer the question <span class="text-blue-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">using</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-stone-100 rounded-md text-sm font-medium text-stone-900">
+          Trial FAQs knowledge <span class="text-stone-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">, then</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-blue-50 text-blue-900 rounded-md text-sm font-medium">
+          send SMS with scheduling link <span class="text-blue-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">. Briefly collect</span>
+        <button class="pill-dropdown inline-flex items-center gap-1.5 mx-1 px-2.5 py-1 bg-stone-100 rounded-md text-sm font-medium text-stone-900">
+          caller name, study interest <span class="text-stone-400 text-xs">▾</span>
+        </button>
+        <span class="text-sm">.</span>
+      </div>
+    </div>
+
+    <!-- Add new rule -->
+    <button class="mt-6 w-full text-left px-6 py-5 bg-white border border-dashed border-stone-300 rounded-2xl text-stone-500 hover:text-stone-900 hover:border-stone-400 transition flex items-center gap-2">
+      <span class="w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center text-stone-500">+</span>
+      <span class="text-sm">Add a new rule</span>
+      <span class="text-xs text-stone-400 ml-auto">Or generate from a sample call →</span>
+    </button>
+
+    <!-- General fallback -->
+    <div class="mt-10 p-5 bg-stone-100/60 border border-stone-200/80 rounded-2xl">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Default fallback</div>
+          <div class="text-sm text-stone-900 mt-1 leading-relaxed">
+            If no rule matches, the agent will
+            <span class="px-2 py-0.5 bg-white border border-stone-200 rounded text-stone-900 font-medium">take a message</span>
+            and send to the
+            <span class="px-2 py-0.5 bg-white border border-stone-200 rounded text-stone-900 font-medium">general inbox</span>.
+          </div>
+        </div>
+        <button class="text-xs text-stone-500 hover:text-stone-900">Change fallback →</button>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

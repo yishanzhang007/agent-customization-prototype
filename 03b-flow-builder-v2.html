@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Option 3 v2 · Interactive Flow Builder</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 3px; }
+    .canvas-bg {
+      background-image: radial-gradient(circle, #e7e5e4 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+    .flow-node { transition: all 0.15s; cursor: pointer; }
+    .flow-node:hover { transform: translateY(-1px); box-shadow: 0 8px 24px -8px rgba(0,0,0,0.12); }
+    .flow-node.selected { box-shadow: 0 0 0 2px #1c1917, 0 8px 24px -8px rgba(0,0,0,0.15); }
+    .flow-node.firing { animation: pulse 1.2s ease-in-out infinite; box-shadow: 0 0 0 3px #fbbf24, 0 8px 24px -8px rgba(0,0,0,0.2); }
+    @keyframes pulse { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)} }
+
+    .side-panel { transition: transform 0.2s ease; }
+    .side-panel.hidden { transform: translateX(100%); }
+
+    .test-drawer { transition: transform 0.25s ease; }
+    .test-drawer.collapsed { transform: translateY(calc(100% - 56px)); }
+
+    .add-dropdown {
+      animation: dropIn 0.15s ease-out;
+      transform-origin: top left;
+    }
+    @keyframes dropIn {
+      from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* mode connection animation */
+    .connection { stroke-dasharray: 0; transition: stroke 0.2s; }
+    .connection.lit { stroke: #fbbf24; stroke-width: 3; }
+  </style>
+</head>
+<body class="bg-stone-50 h-screen overflow-hidden">
+
+  <!-- Top bar -->
+  <div class="h-14 bg-white border-b border-stone-200 flex items-center justify-between px-6 relative z-10">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="text-sm text-stone-500 hover:text-stone-900">← Gallery</a>
+      <div class="h-4 w-px bg-stone-200"></div>
+      <div class="text-sm font-medium text-stone-900">Agent Settings</div>
+      <span class="text-stone-300">/</span>
+      <div class="text-sm text-stone-500">Conversation flow</div>
+      <span class="text-xs px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded ml-2 border border-amber-200">v2 · interactive</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div id="mode-tabs" class="flex items-center gap-1 bg-stone-100 rounded-md p-0.5">
+        <button data-mode="business" class="mode-tab text-xs px-2.5 py-1 bg-white text-stone-900 rounded shadow-sm">Business hours · 9–5</button>
+        <button data-mode="lunch" class="mode-tab text-xs px-2.5 py-1 text-stone-600 hover:text-stone-900">Lunch · 12–1</button>
+        <button data-mode="afterhours" class="mode-tab text-xs px-2.5 py-1 text-stone-600 hover:text-stone-900">After hours</button>
+      </div>
+      <button id="open-test" class="text-sm bg-stone-900 text-white px-3 py-1.5 rounded-md hover:bg-stone-800 inline-flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        Test flow
+      </button>
+    </div>
+  </div>
+
+  <div class="flex h-[calc(100vh-56px)] relative">
+
+    <!-- Canvas -->
+    <div class="flex-1 relative canvas-bg overflow-auto">
+      <!-- Mode banner -->
+      <div id="mode-banner" class="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-4 py-2 bg-white border border-stone-200 rounded-full shadow-sm flex items-center gap-2">
+        <span id="mode-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        <span id="mode-label" class="text-xs font-medium text-stone-900">Business hours · Monday–Friday 9am–5pm</span>
+      </div>
+
+      <svg id="canvas-svg" class="absolute top-0 left-0 pointer-events-none" style="width: 1300px; height: 700px"></svg>
+      <div id="canvas-nodes" class="relative" style="width: 1300px; height: 700px"></div>
+
+      <div class="absolute bottom-20 right-6 bg-white border border-stone-200 rounded-lg shadow-sm flex items-center divide-x divide-stone-100 z-10">
+        <button class="px-3 py-2 text-sm text-stone-600 hover:bg-stone-50">−</button>
+        <div class="px-3 py-2 text-sm text-stone-700">100%</div>
+        <button class="px-3 py-2 text-sm text-stone-600 hover:bg-stone-50">+</button>
+      </div>
+    </div>
+
+    <!-- Right side panel (slides in on node click) -->
+    <div id="side-panel" class="side-panel hidden absolute right-0 top-0 h-full w-96 bg-white border-l border-stone-200 shadow-xl z-20 flex flex-col">
+      <div class="px-5 py-4 border-b border-stone-100 flex items-start justify-between">
+        <div>
+          <div id="panel-eyebrow" class="text-xs font-medium text-stone-400 uppercase tracking-widest">Intent</div>
+          <div id="panel-title" class="text-sm font-medium text-stone-900 mt-1">—</div>
+        </div>
+        <button id="panel-close" class="text-stone-400 hover:text-stone-900 text-xl leading-none">×</button>
+      </div>
+      <div id="panel-body" class="flex-1 overflow-y-auto scrollbar-thin p-5"></div>
+      <div class="border-t border-stone-100 p-4 flex items-center justify-between">
+        <button id="panel-delete" class="text-xs text-red-600 hover:text-red-700">Delete node</button>
+        <div class="flex gap-2">
+          <button id="panel-cancel" class="text-xs px-3 py-1.5 text-stone-600 hover:bg-stone-50 rounded-md">Cancel</button>
+          <button id="panel-save" class="text-xs px-3 py-1.5 bg-stone-900 text-white rounded-md hover:bg-stone-800">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Test flow drawer (bottom) -->
+    <div id="test-drawer" class="test-drawer collapsed absolute bottom-0 left-0 right-0 bg-white border-t border-stone-200 shadow-xl z-30 h-96">
+      <button id="test-toggle" class="w-full h-14 px-6 flex items-center justify-between border-b border-stone-100 hover:bg-stone-50">
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-red-500"></span>
+          <span class="text-sm font-medium text-stone-900">Test flow</span>
+          <span class="text-xs text-stone-500">Run a sample call through the active mode</span>
+        </div>
+        <span id="test-toggle-icon" class="text-stone-400">▴</span>
+      </button>
+
+      <div class="grid grid-cols-2 gap-0 h-[calc(100%-56px)]">
+        <!-- Left: scenario picker -->
+        <div class="border-r border-stone-100 p-6 overflow-y-auto scrollbar-thin">
+          <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">Caller says…</div>
+          <div class="mt-3 space-y-2">
+            <button class="scenario w-full text-left p-3 bg-stone-50 border border-stone-200 rounded-lg hover:border-stone-400" data-intent="refill" data-text="Hi, I need a refill on my blood pressure medication">
+              <div class="text-sm text-stone-900">"I need a refill on my blood pressure medication"</div>
+              <div class="text-xs text-stone-500 mt-0.5">Should route to → Medication refill</div>
+            </button>
+            <button class="scenario w-full text-left p-3 bg-stone-50 border border-stone-200 rounded-lg hover:border-stone-400" data-intent="sched" data-text="I want to book an appointment for next week">
+              <div class="text-sm text-stone-900">"I want to book an appointment for next week"</div>
+              <div class="text-xs text-stone-500 mt-0.5">Should route to → Scheduling</div>
+            </button>
+            <button class="scenario w-full text-left p-3 bg-stone-50 border border-stone-200 rounded-lg hover:border-stone-400" data-intent="trial" data-text="How do I sign up for the clinical trial?">
+              <div class="text-sm text-stone-900">"How do I sign up for the clinical trial?"</div>
+              <div class="text-xs text-stone-500 mt-0.5">Should route to → Clinical trial inquiry</div>
+            </button>
+            <button class="scenario w-full text-left p-3 bg-stone-50 border border-stone-200 rounded-lg hover:border-stone-400" data-intent="clinical" data-text="My son has a fever, what should I do?">
+              <div class="text-sm text-stone-900">"My son has a fever, what should I do?"</div>
+              <div class="text-xs text-stone-500 mt-0.5">Should route to → Clinical question</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: simulation -->
+        <div class="p-6 overflow-y-auto scrollbar-thin">
+          <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">Result</div>
+          <div id="test-result" class="mt-3 text-sm text-stone-500 italic">Pick a scenario on the left to see how the call routes through the flow.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ============================================================
+    // Flow state — three modes, each with its own intent layout
+    // ============================================================
+    const FLOWS = {
+      business: {
+        label: "Business hours · Monday–Friday 9am–5pm",
+        intents: [
+          { id: 'sched',    name: 'Scheduling',            examples: ['book an appointment'],          action: { type: 'transfer',  target: '(415) 555-0142', label: 'Scheduling line' } },
+          { id: 'refill',   name: 'Medication refill',     examples: ['refilling a prescription'],     action: { type: 'direct',    text: '"Call pharmacy: 415-555-0182"', note: '+ ask about recent visit' } },
+          { id: 'billing',  name: 'Billing',               examples: ['question about my bill'],       action: { type: 'message',   inbox: 'Billing inbox' } },
+          { id: 'clinical', name: 'Clinical question',     examples: ['talk to the nurse'],            action: { type: 'message',   inbox: 'Nurse triage', urgentFlag: true } },
+          { id: 'trial',    name: 'Clinical trial inquiry',custom: true, examples: ['how do I sign up for the trial'], action: { type: 'sms', text: 'Send link + answer trial FAQs' } },
+        ],
+      },
+      lunch: {
+        label: "Lunch · 12pm–1pm",
+        intents: [
+          { id: 'sched',    name: 'Scheduling',            examples: ['book an appointment'],          action: { type: 'message',   inbox: 'Scheduling inbox' }, overridden: true },
+          { id: 'refill',   name: 'Medication refill',     examples: ['refilling a prescription'],     action: { type: 'direct',    text: '"Call pharmacy: 415-555-0182"', note: '+ ask about recent visit' } },
+          { id: 'billing',  name: 'Billing',               examples: ['question about my bill'],       action: { type: 'message',   inbox: 'Billing inbox' } },
+          { id: 'clinical', name: 'Clinical question',     examples: ['talk to the nurse'],            action: { type: 'transfer',  target: '(415) 555-0911', label: 'On-call nurse' }, overridden: true },
+          { id: 'trial',    name: 'Clinical trial inquiry',custom: true, examples: ['how do I sign up for the trial'], action: { type: 'sms', text: 'Send link + answer trial FAQs' } },
+        ],
+      },
+      afterhours: {
+        label: "After hours · Mon–Fri after 5pm + weekends",
+        intents: [
+          { id: 'urgent',   name: 'Urgent / emergency',    custom: true, examples: ['chest pain', 'emergency'], action: { type: 'transfer',  target: '(415) 555-0911', label: 'On-call nurse' } },
+          { id: 'sched',    name: 'Scheduling',            examples: ['book an appointment'],          action: { type: 'message',   inbox: 'Scheduling inbox' }, overridden: true },
+          { id: 'refill',   name: 'Medication refill',     examples: ['refilling a prescription'],     action: { type: 'message',   inbox: 'Refill queue' }, overridden: true },
+          { id: 'billing',  name: 'Billing',               examples: ['question about my bill'],       action: { type: 'message',   inbox: 'Billing inbox' } },
+          { id: 'clinical', name: 'Clinical question',     examples: ['talk to the nurse'],            action: { type: 'transfer',  target: '(415) 555-0911', label: 'On-call nurse' }, overridden: true },
+        ],
+      },
+    };
+
+    // ============================================================
+    // State
+    // ============================================================
+    let activeMode = 'business';
+    let selectedIntentId = null;
+
+    // ============================================================
+    // Render
+    // ============================================================
+    const $nodes = document.getElementById('canvas-nodes');
+    const $svg = document.getElementById('canvas-svg');
+    const $banner = document.getElementById('mode-banner');
+    const $modeLabel = document.getElementById('mode-label');
+    const $modeDot = document.getElementById('mode-dot');
+    const $modeSummary = document.getElementById('mode-summary');
+
+    const actionColors = {
+      transfer: { bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-500', label: 'Transfer' },
+      message:  { bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-500', label: 'Take message' },
+      direct:   { bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', label: 'Direct elsewhere' },
+      sms:      { bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-500', label: 'Send SMS' },
+      schedule: { bg: 'bg-indigo-50', border: 'border-indigo-200', dot: 'bg-indigo-500', label: 'Schedule' },
+    };
+
+    function render() {
+      const flow = FLOWS[activeMode];
+      $modeLabel.textContent = flow.label;
+      $modeDot.className = `w-1.5 h-1.5 rounded-full ${activeMode === 'business' ? 'bg-emerald-500' : activeMode === 'lunch' ? 'bg-amber-500' : 'bg-stone-500'}`;
+      $modeSummary.textContent = `${flow.intents.length} intents · ${flow.intents.length} actions`;
+
+      $nodes.innerHTML = '';
+      $svg.innerHTML = '';
+
+      // Start node (top-left)
+      $nodes.appendChild(makeStartNode());
+      // Classify node
+      $nodes.appendChild(makeClassifyNode());
+
+      // Intent + action nodes laid out in two columns
+      flow.intents.forEach((intent, i) => {
+        const top = 30 + i * 115;
+        $nodes.appendChild(makeIntentNode(intent, top));
+        $nodes.appendChild(makeActionNode(intent, top));
+        drawConnection(580, 110, 720, top + 30, `c-classify-${intent.id}`);
+        drawConnection(920, top + 30, 1020, top + 30, `c-${intent.id}-action`);
+      });
+
+      // Add-intent button below intent column
+      const addTop = 30 + flow.intents.length * 115;
+      $nodes.appendChild(makeAddIntentButton(addTop));
+
+      // Classify → start connection
+      drawConnection(280, 110, 380, 110, 'c-start-classify');
+    }
+
+    function makeAddIntentButton(top) {
+      const el = document.createElement('div');
+      el.className = 'absolute';
+      el.style.left = '720px';
+      el.style.top = `${top}px`;
+      el.innerHTML = `
+        <div class="relative">
+          <button id="add-intent-trigger" class="w-48 border border-dashed border-stone-300 rounded-xl px-3 py-3 text-sm text-stone-500 hover:text-stone-900 hover:border-stone-500 hover:bg-white transition flex items-center justify-center gap-1.5 group">
+            <span class="w-4 h-4 rounded-full bg-stone-100 group-hover:bg-stone-900 group-hover:text-white flex items-center justify-center text-xs leading-none transition">+</span>
+            <span>Add intent</span>
+          </button>
+          <div id="add-intent-dropdown" class="hidden add-dropdown absolute left-0 mt-1.5 w-72 bg-white border border-stone-200 rounded-xl shadow-lg z-30 overflow-hidden">
+            <div class="px-3 py-2 border-b border-stone-100">
+              <div class="text-[11px] font-medium text-stone-400 uppercase tracking-widest">Suggested intents</div>
+            </div>
+            <div class="py-1 max-h-72 overflow-y-auto scrollbar-thin">
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Insurance verification" data-example="Do you take my insurance?">
+                <span class="text-base">🛡️</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm text-stone-900">Insurance verification</div>
+                  <div class="text-xs text-stone-500 truncate">"Do you take my insurance?"</div>
+                </div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="New patient registration" data-example="I'd like to become a new patient">
+                <span class="text-base">📋</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm text-stone-900">New patient registration</div>
+                  <div class="text-xs text-stone-500 truncate">"I'd like to become a new patient"</div>
+                </div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Prescription transfer" data-example="Can you transfer my prescription?">
+                <span class="text-base">💊</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm text-stone-900">Prescription transfer</div>
+                  <div class="text-xs text-stone-500 truncate">"Can you transfer my prescription?"</div>
+                </div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Lab results" data-example="I'm calling about my lab results">
+                <span class="text-base">🧪</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm text-stone-900">Lab results inquiry</div>
+                  <div class="text-xs text-stone-500 truncate">"I'm calling about my lab results"</div>
+                </div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Spanish-speaking caller" data-example="Hola, ¿hablan español?">
+                <span class="text-base">🌐</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm text-stone-900">Spanish-speaking caller</div>
+                  <div class="text-xs text-stone-500 truncate">"Hola, ¿hablan español?"</div>
+                </div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Urgent / emergency" data-example="I'm having chest pain">
+                <span class="text-base">🚨</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm text-stone-900">Urgent / emergency</div>
+                  <div class="text-xs text-stone-500 truncate">"I'm having chest pain"</div>
+                </div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Telehealth visit" data-example="Can I do a virtual appointment?">
+                <span class="text-base">📹</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm text-stone-900">Telehealth visit</div>
+                  <div class="text-xs text-stone-500 truncate">"Can I do a virtual appointment?"</div>
+                </div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Records request" data-example="I need a copy of my medical records">
+                <span class="text-base">📄</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm text-stone-900">Medical records request</div>
+                  <div class="text-xs text-stone-500 truncate">"I need a copy of my medical records"</div>
+                </div>
+              </button>
+            </div>
+            <div class="border-t border-stone-100 py-1">
+              <button id="add-custom-intent" class="w-full text-left px-3 py-2.5 hover:bg-stone-50 flex items-center gap-2.5 text-stone-900">
+                <span class="w-5 h-5 rounded border border-dashed border-stone-400 flex items-center justify-center text-xs">+</span>
+                <div>
+                  <div class="text-sm font-medium">Custom intent…</div>
+                  <div class="text-xs text-stone-500">Define your own from scratch</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>`;
+      // Defer wiring until after DOM is appended
+      setTimeout(() => wireAddIntentDropdown(), 0);
+      return el;
+    }
+
+    function wireAddIntentDropdown() {
+      const trigger = document.getElementById('add-intent-trigger');
+      const dropdown = document.getElementById('add-intent-dropdown');
+      if (!trigger || !dropdown) return;
+
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('hidden');
+      });
+
+      // close on outside click
+      document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target) && e.target !== trigger) {
+          dropdown.classList.add('hidden');
+        }
+      });
+
+      // suggested intents
+      document.querySelectorAll('.suggested-intent').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const name = btn.dataset.name;
+          const example = btn.dataset.example;
+          addNewIntent({ name, example, custom: true });
+          dropdown.classList.add('hidden');
+        });
+      });
+
+      document.getElementById('add-custom-intent').addEventListener('click', () => {
+        addNewIntent({ name: 'New custom intent', example: 'When the caller says…', custom: true, isBlank: true });
+        dropdown.classList.add('hidden');
+      });
+    }
+
+    function addNewIntent({ name, example, custom, isBlank }) {
+      const id = `custom_${Date.now()}`;
+      const newIntent = {
+        id,
+        name,
+        custom: !!custom,
+        examples: [example],
+        action: { type: 'message', inbox: 'General inbox' },
+      };
+      FLOWS[activeMode].intents.push(newIntent);
+      render();
+      // Open the newly created intent in the side panel so the user can configure it
+      setTimeout(() => openPanel(`intent-${id}`), 50);
+    }
+
+    function makeStartNode() {
+      const el = document.createElement('div');
+      el.className = 'flow-node absolute';
+      el.style.left = '100px'; el.style.top = '80px';
+      el.innerHTML = `
+        <div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+          <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-stone-400"></span><div class="text-[11px] font-medium text-stone-400 uppercase tracking-wider">Start</div></div>
+          <div class="text-sm font-medium text-stone-900 mt-1.5">Incoming call</div>
+          <div class="text-xs text-stone-500 mt-0.5">${FLOWS[activeMode].label}</div>
+        </div>`;
+      return el;
+    }
+
+    function makeClassifyNode() {
+      const el = document.createElement('div');
+      el.className = 'flow-node absolute';
+      el.style.left = '380px'; el.style.top = '80px';
+      el.dataset.nodeId = 'classify';
+      el.innerHTML = `
+        <div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+          <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><div class="text-[11px] font-medium text-emerald-600 uppercase tracking-wider">Classify</div></div>
+          <div class="text-sm font-medium text-stone-900 mt-1.5">What is the caller asking about?</div>
+          <div class="text-xs text-stone-500 mt-0.5">${FLOWS[activeMode].intents.length} intents</div>
+        </div>`;
+      el.addEventListener('click', () => openPanel('classify'));
+      return el;
+    }
+
+    function makeIntentNode(intent, top) {
+      const el = document.createElement('div');
+      el.className = 'flow-node absolute';
+      el.style.left = '720px'; el.style.top = `${top}px`;
+      el.dataset.nodeId = `intent-${intent.id}`;
+      const ring = intent.custom ? 'border-2 border-purple-300 bg-purple-50/30' : 'border border-stone-200 bg-white';
+      const eyebrowText = intent.custom ? 'Custom intent' : 'Intent';
+      const eyebrowColor = intent.custom ? 'text-purple-600' : 'text-stone-400';
+      el.innerHTML = `
+        <div class="w-48 ${ring} rounded-xl p-3 shadow-sm">
+          <div class="text-[11px] font-medium ${eyebrowColor} uppercase tracking-wider">${eyebrowText}</div>
+          <div class="text-sm font-medium text-stone-900 mt-1">${intent.name}</div>
+          <div class="text-xs text-stone-500 mt-0.5 italic">"${intent.examples[0]}"</div>
+        </div>`;
+      el.addEventListener('click', () => openPanel(`intent-${intent.id}`));
+      return el;
+    }
+
+    function makeActionNode(intent, top) {
+      const el = document.createElement('div');
+      el.className = 'flow-node absolute';
+      el.style.left = '1020px'; el.style.top = `${top}px`;
+      el.dataset.nodeId = `action-${intent.id}`;
+      const a = intent.action;
+      const c = actionColors[a.type];
+      const detailLine = a.type === 'transfer' ? `→ ${a.target}<div class="text-xs text-stone-500">${a.label}</div>`
+                       : a.type === 'direct'   ? `${a.text}<div class="text-xs text-stone-500">${a.note || ''}</div>`
+                       : a.type === 'message'  ? `→ ${a.inbox}${a.urgentFlag ? '<div class="text-xs text-amber-600">+ urgent flag</div>' : ''}`
+                       : a.type === 'sms'      ? `${a.text}` : '';
+      const overrideTag = intent.overridden ? `<div class="absolute -top-2 -right-2 text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded border border-amber-200">override</div>` : '';
+      el.innerHTML = `
+        <div class="relative w-52 bg-white border ${c.border} rounded-xl p-3 shadow-sm">
+          ${overrideTag}
+          <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full ${c.dot}"></span><div class="text-[11px] font-medium text-stone-500 uppercase tracking-wider">${c.label}</div></div>
+          <div class="text-sm text-stone-900 mt-1.5">${detailLine}</div>
+        </div>`;
+      el.addEventListener('click', () => openPanel(`action-${intent.id}`));
+      return el;
+    }
+
+    function drawConnection(x1, y1, x2, y2, id) {
+      const xc = x1 + (x2 - x1) * 0.5;
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', `M ${x1} ${y1} C ${xc} ${y1}, ${xc} ${y2}, ${x2} ${y2}`);
+      path.setAttribute('stroke', '#d6d3d1');
+      path.setAttribute('stroke-width', '2');
+      path.setAttribute('fill', 'none');
+      path.setAttribute('id', id);
+      path.classList.add('connection');
+      $svg.appendChild(path);
+      const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      arrow.setAttribute('points', `${x2-6},${y2-3} ${x2},${y2} ${x2-6},${y2+3}`);
+      arrow.setAttribute('fill', '#d6d3d1');
+      arrow.setAttribute('id', `${id}-arrow`);
+      $svg.appendChild(arrow);
+    }
+
+    // ============================================================
+    // Side panel — node editor
+    // ============================================================
+    const $sidePanel = document.getElementById('side-panel');
+    const $panelEyebrow = document.getElementById('panel-eyebrow');
+    const $panelTitle = document.getElementById('panel-title');
+    const $panelBody = document.getElementById('panel-body');
+
+    function openPanel(nodeId) {
+      // clear previous selection
+      document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('selected'));
+      const target = document.querySelector(`[data-node-id="${nodeId}"]`);
+      if (target) target.classList.add('selected');
+
+      if (nodeId === 'classify') {
+        $panelEyebrow.textContent = 'Classifier node';
+        $panelTitle.textContent = 'Intent classification';
+        $panelBody.innerHTML = `
+          <div class="space-y-5">
+            <div>
+              <label class="text-xs font-medium text-stone-700">Classifier mode</label>
+              <div class="mt-2 grid grid-cols-2 gap-1.5">
+                <button class="text-xs py-2 bg-stone-900 text-white rounded-md">LLM</button>
+                <button class="text-xs py-2 bg-white text-stone-600 border border-stone-200 rounded-md">Keywords</button>
+              </div>
+              <p class="text-xs text-stone-500 mt-2 leading-relaxed">LLM uses your trigger examples to recognize intents. Keyword mode does exact-substring matching — faster, but less flexible.</p>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-stone-700">Active intents in this mode</label>
+              <div class="mt-2 space-y-1.5">
+                ${FLOWS[activeMode].intents.map(i => `
+                  <div class="flex items-center justify-between p-2 ${i.custom ? 'bg-purple-50 border border-purple-200/60' : 'bg-stone-50'} rounded-md">
+                    <span class="text-sm text-stone-900">${i.name}</span>
+                    ${i.custom ? '<span class="text-xs text-purple-600">custom</span>' : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-stone-700">Fallback if unsure</label>
+              <select class="mt-1.5 w-full px-3 py-2 text-sm border border-stone-200 rounded-md bg-white">
+                <option>General intent (take a message)</option>
+                <option>Ask qualifying question</option>
+                <option>Transfer to main line</option>
+              </select>
+            </div>
+          </div>`;
+      } else if (nodeId.startsWith('intent-')) {
+        const intent = FLOWS[activeMode].intents.find(i => `intent-${i.id}` === nodeId);
+        if (!intent) return;
+        selectedIntentId = intent.id;
+        $panelEyebrow.textContent = intent.custom ? 'Custom intent' : 'Default intent';
+        $panelTitle.textContent = intent.name;
+        $panelBody.innerHTML = `
+          <div class="space-y-5">
+            <div>
+              <label class="text-xs font-medium text-stone-700">Intent name</label>
+              <input type="text" value="${intent.name}" class="mt-1.5 w-full px-3 py-2 text-sm border border-stone-200 rounded-md focus:outline-none focus:border-stone-400" ${!intent.custom ? 'disabled' : ''}/>
+              ${!intent.custom ? '<p class="text-[11px] text-stone-400 mt-1">Default intent name can\'t be changed.</p>' : ''}
+            </div>
+            <div>
+              <label class="text-xs font-medium text-stone-700 flex items-center justify-between">
+                <span>Trigger examples</span>
+                <span class="text-stone-400 font-normal">${intent.examples.length}/5</span>
+              </label>
+              <p class="text-xs text-stone-500 mt-0.5">Help the classifier recognize this intent.</p>
+              <div class="mt-2 space-y-1.5">
+                ${intent.examples.map(ex => `<div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-stone-50 rounded-md"><span class="text-sm text-stone-700 flex-1 italic">"${ex}"</span><button class="text-stone-400 hover:text-stone-900 text-xs">×</button></div>`).join('')}
+                <button class="text-xs text-stone-500 hover:text-stone-900 px-2.5 py-1.5 border border-dashed border-stone-300 rounded-md w-full text-left">+ Add example</button>
+              </div>
+            </div>
+            ${intent.overridden ? `
+            <div class="p-3 bg-amber-50/50 border border-amber-200 rounded-lg">
+              <div class="text-xs font-medium text-amber-900">Overridden in this mode</div>
+              <p class="text-xs text-amber-800 mt-1 leading-relaxed">This intent uses a different action in <strong>${activeMode === 'lunch' ? 'lunch' : 'after-hours'}</strong> mode than the default. Click "Edit action" below to change it for this mode.</p>
+            </div>` : ''}
+            <div>
+              <button class="text-xs px-3 py-2 bg-stone-900 text-white rounded-md hover:bg-stone-800 w-full">Edit action node →</button>
+            </div>
+          </div>`;
+      } else if (nodeId.startsWith('action-')) {
+        const intent = FLOWS[activeMode].intents.find(i => `action-${i.id}` === nodeId);
+        if (!intent) return;
+        const a = intent.action;
+        $panelEyebrow.textContent = `Action for "${intent.name}"`;
+        $panelTitle.textContent = actionColors[a.type].label;
+        $panelBody.innerHTML = `
+          <div class="space-y-5">
+            <div>
+              <label class="text-xs font-medium text-stone-700">Action type</label>
+              <div class="mt-2 grid grid-cols-1 gap-1.5">
+                ${['transfer','message','direct','sms','schedule'].map(t => `
+                  <button class="text-left p-2.5 border ${t === a.type ? 'border-stone-900 bg-stone-50' : 'border-stone-200 bg-white hover:border-stone-300'} rounded-md flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full ${actionColors[t].dot}"></span>
+                    <span class="text-sm text-stone-900">${actionColors[t].label}</span>
+                    ${t === a.type ? '<span class="ml-auto text-xs text-stone-500">selected</span>' : ''}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+            ${renderActionConfig(a)}
+            <div>
+              <label class="text-xs font-medium text-stone-700">What should Sage say first?</label>
+              <p class="text-xs text-stone-500 mt-0.5">Free-text phrasing inside this action. Backend always enforces the action type above.</p>
+              <textarea class="mt-2 w-full h-24 p-2.5 text-sm border border-stone-200 rounded-md resize-none focus:outline-none focus:border-stone-400">${getActionPrompt(intent)}</textarea>
+            </div>
+          </div>`;
+      }
+
+      $sidePanel.classList.remove('hidden');
+    }
+
+    function renderActionConfig(a) {
+      if (a.type === 'transfer') return `
+        <div>
+          <label class="text-xs font-medium text-stone-700">Transfer to</label>
+          <input type="text" value="${a.target}" class="mt-1.5 w-full px-3 py-2 text-sm border border-stone-200 rounded-md font-mono" />
+          <input type="text" value="${a.label}" placeholder="Label (e.g. Scheduling line)" class="mt-1.5 w-full px-3 py-2 text-sm border border-stone-200 rounded-md" />
+        </div>`;
+      if (a.type === 'message') return `
+        <div>
+          <label class="text-xs font-medium text-stone-700">Send message to inbox</label>
+          <select class="mt-1.5 w-full px-3 py-2 text-sm border border-stone-200 rounded-md bg-white">
+            <option ${a.inbox === 'Billing inbox' ? 'selected' : ''}>Billing inbox</option>
+            <option ${a.inbox === 'Scheduling inbox' ? 'selected' : ''}>Scheduling inbox</option>
+            <option ${a.inbox === 'Nurse triage' ? 'selected' : ''}>Nurse triage</option>
+            <option ${a.inbox === 'Refill queue' ? 'selected' : ''}>Refill queue</option>
+            <option>General inbox</option>
+          </select>
+          <label class="inline-flex items-center gap-2 mt-3">
+            <input type="checkbox" ${a.urgentFlag ? 'checked' : ''} class="rounded border-stone-300" />
+            <span class="text-xs text-stone-700">Flag as urgent if mentioned</span>
+          </label>
+        </div>`;
+      if (a.type === 'direct') return `
+        <div>
+          <label class="text-xs font-medium text-stone-700">Direct caller to</label>
+          <input type="text" value="${a.text.replace(/"/g, '')}" class="mt-1.5 w-full px-3 py-2 text-sm border border-stone-200 rounded-md" />
+          <p class="text-xs text-stone-500 mt-1">Optional additional instructions for Sage</p>
+        </div>`;
+      if (a.type === 'sms') return `
+        <div>
+          <label class="text-xs font-medium text-stone-700">SMS template</label>
+          <textarea class="mt-1.5 w-full h-20 p-2 text-sm border border-stone-200 rounded-md resize-none">${a.text}</textarea>
+        </div>`;
+      return '';
+    }
+
+    function getActionPrompt(intent) {
+      const a = intent.action;
+      if (a.type === 'transfer')  return `I'll get you to ${a.label.toLowerCase()} right now — one moment.`;
+      if (a.type === 'message')   return `Let me take a quick message and someone will follow up.`;
+      if (a.type === 'direct')    return `For refills, our pharmacy handles those directly — they can get it processed faster than we can.`;
+      if (a.type === 'sms')       return `I'll send you a text with more info and a link to learn more about the study.`;
+      return '';
+    }
+
+    // panel close
+    document.getElementById('panel-close').addEventListener('click', closePanel);
+    document.getElementById('panel-cancel').addEventListener('click', closePanel);
+    function closePanel() {
+      $sidePanel.classList.add('hidden');
+      document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('selected'));
+    }
+
+    // ============================================================
+    // Mode tab switching
+    // ============================================================
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.mode-tab').forEach(t => {
+          t.classList.remove('bg-white', 'text-stone-900', 'shadow-sm');
+          t.classList.add('text-stone-600');
+        });
+        tab.classList.remove('text-stone-600');
+        tab.classList.add('bg-white', 'text-stone-900', 'shadow-sm');
+        activeMode = tab.dataset.mode;
+        closePanel();
+        render();
+      });
+    });
+
+    // ============================================================
+    // Test flow drawer
+    // ============================================================
+    const $drawer = document.getElementById('test-drawer');
+    const $drawerIcon = document.getElementById('test-toggle-icon');
+    document.getElementById('test-toggle').addEventListener('click', () => {
+      $drawer.classList.toggle('collapsed');
+      $drawerIcon.textContent = $drawer.classList.contains('collapsed') ? '▴' : '▾';
+    });
+    document.getElementById('open-test').addEventListener('click', () => {
+      $drawer.classList.remove('collapsed');
+      $drawerIcon.textContent = '▾';
+    });
+
+    document.querySelectorAll('.scenario').forEach(btn => {
+      btn.addEventListener('click', () => simulate(btn.dataset.intent, btn.dataset.text));
+    });
+
+    function simulate(intentId, text) {
+      const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
+      const $result = document.getElementById('test-result');
+
+      // Reset firing state
+      document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('firing'));
+      document.querySelectorAll('.connection').forEach(c => c.classList.remove('lit'));
+
+      if (!intent) {
+        $result.innerHTML = `<div class="p-3 bg-red-50 border border-red-200 rounded-lg"><div class="text-sm font-medium text-red-900">No matching intent in ${activeMode} mode</div><div class="text-xs text-red-700 mt-1">"${text}"</div><div class="text-xs text-red-600 mt-2">Caller would hit the fallback (take a message → general inbox).</div></div>`;
+        return;
+      }
+
+      $result.innerHTML = `
+        <div class="space-y-3">
+          <div class="p-3 bg-stone-50 border border-stone-200 rounded-lg">
+            <div class="text-xs text-stone-500">Caller said</div>
+            <div class="text-sm text-stone-900 mt-0.5">"${text}"</div>
+          </div>
+          <div id="sim-steps" class="space-y-2"></div>
+        </div>`;
+
+      const steps = [
+        { node: 'classify',           label: 'Classifying intent…',           detail: '' },
+        { node: `intent-${intent.id}`,label: `Matched → ${intent.name}`,       detail: intent.custom ? 'Custom intent' : 'Default intent' },
+        { node: `action-${intent.id}`,label: `Action → ${actionColors[intent.action.type].label}`, detail: describeAction(intent) },
+      ];
+
+      const $steps = document.getElementById('sim-steps');
+      let i = 0;
+      const tick = () => {
+        if (i >= steps.length) return;
+        const step = steps[i];
+        // light node
+        const node = document.querySelector(`[data-node-id="${step.node}"]`);
+        if (node) node.classList.add('firing');
+        // append step
+        const $s = document.createElement('div');
+        $s.className = 'flex items-start gap-2 p-2.5 bg-amber-50/50 border border-amber-200/60 rounded-md';
+        $s.innerHTML = `<span class="text-xs font-medium text-amber-700 mt-0.5">${i+1}.</span><div class="flex-1 min-w-0"><div class="text-sm text-stone-900">${step.label}</div>${step.detail ? `<div class="text-xs text-stone-600 mt-0.5">${step.detail}</div>` : ''}</div>`;
+        $steps.appendChild($s);
+        i++;
+        if (i === steps.length) {
+          setTimeout(() => {
+            document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('firing'));
+          }, 1500);
+        } else {
+          setTimeout(tick, 900);
+        }
+      };
+      tick();
+    }
+
+    function describeAction(intent) {
+      const a = intent.action;
+      if (a.type === 'transfer') return `Transferring to ${a.target} (${a.label})`;
+      if (a.type === 'message')  return `Message sent to ${a.inbox}${a.urgentFlag ? ' (urgent flag)' : ''}`;
+      if (a.type === 'direct')   return `Sage says: ${a.text}`;
+      if (a.type === 'sms')      return `${a.text}`;
+      return '';
+    }
+
+    // Initial render
+    render();
+  </script>
+
+</body>
+</html>

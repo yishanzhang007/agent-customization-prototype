@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Option 3 · Visual Flow Builder</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 3px; }
+    .canvas-bg {
+      background-image: radial-gradient(circle, #e7e5e4 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+    .flow-node { transition: all 0.15s; }
+    .flow-node:hover { transform: translateY(-1px); box-shadow: 0 8px 24px -8px rgba(0,0,0,0.12); }
+    .flow-node.selected { box-shadow: 0 0 0 2px #1c1917, 0 8px 24px -8px rgba(0,0,0,0.15); }
+  </style>
+</head>
+<body class="bg-stone-50 h-screen overflow-hidden">
+
+  <!-- Top bar -->
+  <div class="h-14 bg-white border-b border-stone-200 flex items-center justify-between px-6">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="text-sm text-stone-500 hover:text-stone-900">← Gallery</a>
+      <div class="h-4 w-px bg-stone-200"></div>
+      <div class="text-sm font-medium text-stone-900">Agent Settings</div>
+      <span class="text-stone-300">/</span>
+      <div class="text-sm text-stone-500">Conversation flow</div>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1 bg-stone-100 rounded-md p-0.5">
+        <button class="text-xs px-2.5 py-1 bg-white text-stone-900 rounded shadow-sm">Business hours</button>
+        <button class="text-xs px-2.5 py-1 text-stone-600 hover:text-stone-900">Lunch</button>
+        <button class="text-xs px-2.5 py-1 text-stone-600 hover:text-stone-900">After hours</button>
+      </div>
+      <button class="text-sm text-stone-600 hover:text-stone-900 px-3 py-1.5 rounded-md hover:bg-stone-100">Test flow</button>
+      <button class="text-sm bg-stone-900 text-white px-3 py-1.5 rounded-md hover:bg-stone-800">Publish</button>
+    </div>
+  </div>
+
+  <div class="flex h-[calc(100vh-56px)]">
+
+    <!-- Left palette -->
+    <div class="w-56 bg-white border-r border-stone-200 flex flex-col">
+      <div class="px-4 py-3 border-b border-stone-100">
+        <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">Add nodes</div>
+        <p class="text-xs text-stone-500 mt-1">Drag onto the canvas</p>
+      </div>
+
+      <div class="flex-1 overflow-y-auto scrollbar-thin px-3 py-3 space-y-4">
+
+        <div>
+          <div class="text-[11px] font-medium text-stone-400 uppercase tracking-wider px-1 mb-2">Triggers</div>
+          <div class="space-y-1.5">
+            <div class="px-3 py-2 bg-stone-50 border border-stone-200 rounded-md cursor-grab hover:border-stone-400 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span class="text-sm text-stone-900">Intent detected</span>
+            </div>
+            <div class="px-3 py-2 bg-stone-50 border border-stone-200 rounded-md cursor-grab hover:border-stone-400 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span class="text-sm text-stone-900">Keyword match</span>
+            </div>
+            <div class="px-3 py-2 bg-stone-50 border border-stone-200 rounded-md cursor-grab hover:border-stone-400 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span class="text-sm text-stone-900">Caller type</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="text-[11px] font-medium text-stone-400 uppercase tracking-wider px-1 mb-2">Actions</div>
+          <div class="space-y-1.5">
+            <div class="px-3 py-2 bg-stone-50 border border-stone-200 rounded-md cursor-grab hover:border-stone-400 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              <span class="text-sm text-stone-900">Transfer</span>
+            </div>
+            <div class="px-3 py-2 bg-stone-50 border border-stone-200 rounded-md cursor-grab hover:border-stone-400 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              <span class="text-sm text-stone-900">Take message</span>
+            </div>
+            <div class="px-3 py-2 bg-stone-50 border border-stone-200 rounded-md cursor-grab hover:border-stone-400 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              <span class="text-sm text-stone-900">Direct elsewhere</span>
+            </div>
+            <div class="px-3 py-2 bg-stone-50 border border-stone-200 rounded-md cursor-grab hover:border-stone-400 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              <span class="text-sm text-stone-900">Schedule</span>
+            </div>
+            <div class="px-3 py-2 bg-stone-50 border border-stone-200 rounded-md cursor-grab hover:border-stone-400 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              <span class="text-sm text-stone-900">Send SMS</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="text-[11px] font-medium text-stone-400 uppercase tracking-wider px-1 mb-2">Logic</div>
+          <div class="space-y-1.5">
+            <div class="px-3 py-2 bg-stone-50 border border-stone-200 rounded-md cursor-grab hover:border-stone-400 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+              <span class="text-sm text-stone-900">Branch by condition</span>
+            </div>
+            <div class="px-3 py-2 bg-stone-50 border border-stone-200 rounded-md cursor-grab hover:border-stone-400 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+              <span class="text-sm text-stone-900">Ask qualifying Q</span>
+            </div>
+            <div class="px-3 py-2 bg-stone-50 border border-stone-200 rounded-md cursor-grab hover:border-stone-400 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+              <span class="text-sm text-stone-900">Wait for approval</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="flex-1 relative canvas-bg overflow-auto">
+
+      <!-- SVG connection lines -->
+      <svg class="absolute top-0 left-0 w-full h-full pointer-events-none" style="min-width: 1200px; min-height: 800px">
+        <!-- Start -> Classify -->
+        <path d="M 280 110 L 380 110" stroke="#d6d3d1" stroke-width="2" fill="none" />
+        <polygon points="378,107 384,110 378,113" fill="#d6d3d1"/>
+
+        <!-- Classify -> Scheduling -->
+        <path d="M 580 90 C 660 90, 660 60, 720 60" stroke="#d6d3d1" stroke-width="2" fill="none" />
+        <polygon points="718,57 724,60 718,63" fill="#d6d3d1"/>
+
+        <!-- Classify -> Refill -->
+        <path d="M 580 110 L 720 175" stroke="#d6d3d1" stroke-width="2" fill="none" />
+        <polygon points="718,172 724,175 718,178" fill="#d6d3d1"/>
+
+        <!-- Classify -> Billing -->
+        <path d="M 580 130 L 720 290" stroke="#d6d3d1" stroke-width="2" fill="none" />
+        <polygon points="718,287 724,290 718,293" fill="#d6d3d1"/>
+
+        <!-- Classify -> Clinical -->
+        <path d="M 580 130 C 660 130, 660 400, 720 400" stroke="#d6d3d1" stroke-width="2" fill="none" />
+        <polygon points="718,397 724,400 718,403" fill="#d6d3d1"/>
+
+        <!-- Classify -> Trial -->
+        <path d="M 580 130 C 660 130, 660 510, 720 510" stroke="#d6d3d1" stroke-width="2" fill="none" />
+        <polygon points="718,507 724,510 718,513" fill="#d6d3d1"/>
+
+        <!-- Scheduling -> Transfer to scheduling team -->
+        <path d="M 920 60 L 1020 60" stroke="#d6d3d1" stroke-width="2" fill="none" />
+        <polygon points="1018,57 1024,60 1018,63" fill="#d6d3d1"/>
+
+        <!-- Refill -> Direct -->
+        <path d="M 920 175 L 1020 175" stroke="#d6d3d1" stroke-width="2" fill="none" />
+        <polygon points="1018,172 1024,175 1018,178" fill="#d6d3d1"/>
+
+        <!-- Billing -> Take message -->
+        <path d="M 920 290 L 1020 290" stroke="#d6d3d1" stroke-width="2" fill="none" />
+        <polygon points="1018,287 1024,290 1018,293" fill="#d6d3d1"/>
+
+        <!-- Clinical -> Take message + flag -->
+        <path d="M 920 400 L 1020 400" stroke="#d6d3d1" stroke-width="2" fill="none" />
+        <polygon points="1018,397 1024,400 1018,403" fill="#d6d3d1"/>
+
+        <!-- Trial -> Send link -->
+        <path d="M 920 510 L 1020 510" stroke="#d6d3d1" stroke-width="2" fill="none" />
+        <polygon points="1018,507 1024,510 1018,513" fill="#d6d3d1"/>
+      </svg>
+
+      <div class="relative" style="width: 1300px; height: 700px;">
+
+        <!-- Start node -->
+        <div class="flow-node absolute" style="left: 100px; top: 80px;">
+          <div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
+              <div class="text-[11px] font-medium text-stone-400 uppercase tracking-wider">Start</div>
+            </div>
+            <div class="text-sm font-medium text-stone-900 mt-1.5">Incoming call</div>
+            <div class="text-xs text-stone-500 mt-0.5">Mon–Fri · 9am–5pm</div>
+          </div>
+        </div>
+
+        <!-- Classify intent -->
+        <div class="flow-node selected absolute" style="left: 380px; top: 80px;">
+          <div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <div class="text-[11px] font-medium text-emerald-600 uppercase tracking-wider">Classify</div>
+            </div>
+            <div class="text-sm font-medium text-stone-900 mt-1.5">What is the caller asking about?</div>
+            <div class="text-xs text-stone-500 mt-0.5">5 default + 1 custom intent</div>
+          </div>
+        </div>
+
+        <!-- Intent: Scheduling -->
+        <div class="flow-node absolute" style="left: 720px; top: 30px;">
+          <div class="w-48 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+            <div class="text-[11px] font-medium text-stone-400 uppercase tracking-wider">Intent</div>
+            <div class="text-sm font-medium text-stone-900 mt-1">Scheduling</div>
+            <div class="text-xs text-stone-500 mt-0.5">"book an appointment"</div>
+          </div>
+        </div>
+
+        <!-- Intent: Refill -->
+        <div class="flow-node absolute" style="left: 720px; top: 145px;">
+          <div class="w-48 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+            <div class="text-[11px] font-medium text-stone-400 uppercase tracking-wider">Intent</div>
+            <div class="text-sm font-medium text-stone-900 mt-1">Medication refill</div>
+            <div class="text-xs text-stone-500 mt-0.5">"refill my prescription"</div>
+          </div>
+        </div>
+
+        <!-- Intent: Billing -->
+        <div class="flow-node absolute" style="left: 720px; top: 260px;">
+          <div class="w-48 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+            <div class="text-[11px] font-medium text-stone-400 uppercase tracking-wider">Intent</div>
+            <div class="text-sm font-medium text-stone-900 mt-1">Billing</div>
+            <div class="text-xs text-stone-500 mt-0.5">"question about my bill"</div>
+          </div>
+        </div>
+
+        <!-- Intent: Clinical -->
+        <div class="flow-node absolute" style="left: 720px; top: 370px;">
+          <div class="w-48 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+            <div class="text-[11px] font-medium text-stone-400 uppercase tracking-wider">Intent</div>
+            <div class="text-sm font-medium text-stone-900 mt-1">Clinical question</div>
+            <div class="text-xs text-stone-500 mt-0.5">"talk to the nurse"</div>
+          </div>
+        </div>
+
+        <!-- Intent: Trial (custom) -->
+        <div class="flow-node absolute" style="left: 720px; top: 480px;">
+          <div class="w-48 bg-white border-2 border-purple-300 rounded-xl p-3 shadow-sm bg-purple-50/30">
+            <div class="text-[11px] font-medium text-purple-600 uppercase tracking-wider">Custom intent</div>
+            <div class="text-sm font-medium text-stone-900 mt-1">Clinical trial inquiry</div>
+            <div class="text-xs text-stone-500 mt-0.5">"how do I sign up for the trial"</div>
+          </div>
+        </div>
+
+        <!-- Action: Transfer scheduling -->
+        <div class="flow-node absolute" style="left: 1020px; top: 30px;">
+          <div class="w-52 bg-white border border-blue-200 rounded-xl p-3 shadow-sm">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              <div class="text-[11px] font-medium text-blue-600 uppercase tracking-wider">Action</div>
+            </div>
+            <div class="text-sm font-medium text-stone-900 mt-1.5">Transfer</div>
+            <div class="text-xs text-stone-500 mt-0.5">→ (415) 555-0142</div>
+            <div class="text-xs text-stone-500">Scheduling line</div>
+          </div>
+        </div>
+
+        <!-- Action: Direct refill -->
+        <div class="flow-node absolute" style="left: 1020px; top: 145px;">
+          <div class="w-52 bg-white border border-blue-200 rounded-xl p-3 shadow-sm">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              <div class="text-[11px] font-medium text-blue-600 uppercase tracking-wider">Action</div>
+            </div>
+            <div class="text-sm font-medium text-stone-900 mt-1.5">Direct elsewhere</div>
+            <div class="text-xs text-stone-500 mt-0.5">"Call pharmacy: 415-555-0182"</div>
+            <div class="text-xs text-stone-500">+ ask about recent visit</div>
+          </div>
+        </div>
+
+        <!-- Action: Take message -->
+        <div class="flow-node absolute" style="left: 1020px; top: 260px;">
+          <div class="w-52 bg-white border border-blue-200 rounded-xl p-3 shadow-sm">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              <div class="text-[11px] font-medium text-blue-600 uppercase tracking-wider">Action</div>
+            </div>
+            <div class="text-sm font-medium text-stone-900 mt-1.5">Take a message</div>
+            <div class="text-xs text-stone-500 mt-0.5">Send to billing inbox</div>
+          </div>
+        </div>
+
+        <!-- Action: Take message + flag -->
+        <div class="flow-node absolute" style="left: 1020px; top: 370px;">
+          <div class="w-52 bg-white border border-blue-200 rounded-xl p-3 shadow-sm">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              <div class="text-[11px] font-medium text-blue-600 uppercase tracking-wider">Action</div>
+            </div>
+            <div class="text-sm font-medium text-stone-900 mt-1.5">Take a message · flagged</div>
+            <div class="text-xs text-stone-500 mt-0.5">Send to nurse triage</div>
+            <div class="text-xs text-amber-600 mt-0.5">Urgent flag if mentioned</div>
+          </div>
+        </div>
+
+        <!-- Action: Send link -->
+        <div class="flow-node absolute" style="left: 1020px; top: 480px;">
+          <div class="w-52 bg-white border border-blue-200 rounded-xl p-3 shadow-sm">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              <div class="text-[11px] font-medium text-blue-600 uppercase tracking-wider">Action</div>
+            </div>
+            <div class="text-sm font-medium text-stone-900 mt-1.5">Send SMS with link</div>
+            <div class="text-xs text-stone-500 mt-0.5">+ answer trial FAQs</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Zoom controls -->
+      <div class="absolute bottom-6 right-6 bg-white border border-stone-200 rounded-lg shadow-sm flex items-center divide-x divide-stone-100">
+        <button class="px-3 py-2 text-sm text-stone-600 hover:bg-stone-50">−</button>
+        <div class="px-3 py-2 text-sm text-stone-700">100%</div>
+        <button class="px-3 py-2 text-sm text-stone-600 hover:bg-stone-50">+</button>
+        <button class="px-3 py-2 text-sm text-stone-600 hover:bg-stone-50">⛶</button>
+      </div>
+
+      <div class="absolute bottom-6 left-6 bg-white/80 backdrop-blur border border-stone-200 rounded-lg px-3 py-2 text-xs text-stone-500">
+        Click any node to edit · Drag to move · Shift+drag for new connection
+      </div>
+
+    </div>
+
+    <!-- Right inspector -->
+    <div class="w-72 bg-white border-l border-stone-200 flex flex-col">
+      <div class="px-5 py-4 border-b border-stone-100">
+        <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">Selected node</div>
+        <div class="text-sm font-medium text-stone-900 mt-1">Classify intent</div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto scrollbar-thin p-5 space-y-5">
+
+        <div>
+          <label class="text-xs font-medium text-stone-700">Node label</label>
+          <input type="text" value="What is the caller asking about?" class="mt-1.5 w-full px-3 py-2 text-sm border border-stone-200 rounded-md focus:outline-none focus:border-stone-400" />
+        </div>
+
+        <div>
+          <label class="text-xs font-medium text-stone-700">Classifier mode</label>
+          <div class="mt-1.5 grid grid-cols-2 gap-1.5">
+            <button class="text-xs py-2 bg-stone-900 text-white rounded-md">LLM</button>
+            <button class="text-xs py-2 bg-white text-stone-600 border border-stone-200 rounded-md hover:border-stone-400">Keywords</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-medium text-stone-700 flex items-center justify-between">
+            <span>Intents on this node</span>
+            <button class="text-stone-500 hover:text-stone-900">+ Add</button>
+          </label>
+          <div class="mt-2 space-y-1.5">
+            <div class="flex items-center justify-between p-2 bg-stone-50 rounded-md">
+              <span class="text-sm text-stone-900">Scheduling</span>
+              <span class="text-xs text-stone-400">↗</span>
+            </div>
+            <div class="flex items-center justify-between p-2 bg-stone-50 rounded-md">
+              <span class="text-sm text-stone-900">Medication refill</span>
+              <span class="text-xs text-stone-400">↘</span>
+            </div>
+            <div class="flex items-center justify-between p-2 bg-stone-50 rounded-md">
+              <span class="text-sm text-stone-900">Billing</span>
+              <span class="text-xs text-stone-400">↘</span>
+            </div>
+            <div class="flex items-center justify-between p-2 bg-stone-50 rounded-md">
+              <span class="text-sm text-stone-900">Clinical question</span>
+              <span class="text-xs text-stone-400">↘</span>
+            </div>
+            <div class="flex items-center justify-between p-2 bg-purple-50 rounded-md border border-purple-200/60">
+              <span class="text-sm text-stone-900">Clinical trial inquiry</span>
+              <span class="text-xs text-purple-600">custom</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-medium text-stone-700">Fallback if unsure</label>
+          <select class="mt-1.5 w-full px-3 py-2 text-sm border border-stone-200 rounded-md bg-white">
+            <option>General intent</option>
+            <option>Ask qualifying question</option>
+            <option>Transfer to main line</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="border-t border-stone-100 p-4">
+        <button class="w-full text-sm bg-stone-900 text-white py-2 rounded-md hover:bg-stone-800">Save changes</button>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

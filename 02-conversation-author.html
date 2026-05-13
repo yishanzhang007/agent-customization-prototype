@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Option 2 · Conversation Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 3px; }
+    .agent-bubble { transition: all 0.15s ease; cursor: pointer; }
+    .agent-bubble:hover { background: #fef3c7; outline: 2px solid #fbbf24; outline-offset: 2px; }
+    .agent-bubble.active { background: #fef3c7; outline: 2px solid #f59e0b; outline-offset: 2px; }
+  </style>
+</head>
+<body class="bg-stone-50 h-screen overflow-hidden">
+
+  <!-- Top bar -->
+  <div class="h-14 bg-white border-b border-stone-200 flex items-center justify-between px-6">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="text-sm text-stone-500 hover:text-stone-900">← Gallery</a>
+      <div class="h-4 w-px bg-stone-200"></div>
+      <div class="text-sm font-medium text-stone-900">Agent Settings</div>
+      <span class="text-stone-300">/</span>
+      <div class="text-sm text-stone-500">Test & teach</div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="text-sm text-stone-600 hover:text-stone-900 px-3 py-1.5 rounded-md hover:bg-stone-100">View all rules (8)</button>
+      <button class="text-sm bg-stone-900 text-white px-3 py-1.5 rounded-md hover:bg-stone-800">Publish changes</button>
+    </div>
+  </div>
+
+  <div class="flex h-[calc(100vh-56px)]">
+
+    <!-- Main: conversation -->
+    <div class="flex-1 overflow-y-auto scrollbar-thin">
+      <div class="max-w-3xl mx-auto px-10 py-8">
+
+        <!-- Call header -->
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">Sample call · April 28, 4:12pm</div>
+            <h1 class="text-2xl font-semibold text-stone-900 mt-1">Caller asking about a refill</h1>
+            <p class="text-sm text-stone-500 mt-1.5">Hover any agent message to see the rule behind it. Click to edit.</p>
+          </div>
+          <button class="text-sm text-stone-700 px-3 py-1.5 border border-stone-200 rounded-md hover:bg-stone-50 inline-flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            Try a new test call
+          </button>
+        </div>
+
+        <!-- Conversation -->
+        <div class="mt-8 space-y-4">
+
+          <!-- Agent greeting -->
+          <div class="flex gap-3">
+            <div class="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-medium text-emerald-700 flex-shrink-0 mt-1">S</div>
+            <div class="flex-1">
+              <div class="text-xs text-stone-500 mb-1">Sage · 0:03</div>
+              <div class="agent-bubble px-4 py-3 bg-white border border-stone-200 rounded-2xl rounded-tl-sm max-w-md">
+                <div class="text-sm text-stone-900">Hi, this is Sage from Sterling Family Care. How may I help you today?</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Caller -->
+          <div class="flex gap-3 flex-row-reverse">
+            <div class="w-7 h-7 rounded-full bg-stone-200 flex items-center justify-center text-xs font-medium text-stone-700 flex-shrink-0 mt-1">C</div>
+            <div class="flex-1 flex justify-end">
+              <div class="max-w-md">
+                <div class="text-xs text-stone-500 mb-1 text-right">Caller · 0:08</div>
+                <div class="px-4 py-3 bg-stone-100 rounded-2xl rounded-tr-sm">
+                  <div class="text-sm text-stone-900">Hi, I need a refill on my blood pressure medication.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Agent (clicked, showing inline rule) -->
+          <div class="flex gap-3">
+            <div class="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-medium text-emerald-700 flex-shrink-0 mt-1">S</div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="text-xs text-stone-500">Sage · 0:14</div>
+                <span class="text-xs px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded border border-amber-200">Rule: Medication refill</span>
+              </div>
+              <div class="agent-bubble active px-4 py-3 bg-white border border-stone-200 rounded-2xl rounded-tl-sm max-w-md">
+                <div class="text-sm text-stone-900">For refills, our pharmacy handles those directly — they can usually get it processed faster than we can on our end. Before I direct you over, have you had a check-in with the doctor in the past year?</div>
+              </div>
+
+              <!-- Inline rule editor (visible because this bubble is "active") -->
+              <div class="mt-3 ml-0 max-w-md p-4 bg-amber-50/50 border border-amber-200 rounded-xl">
+                <div class="flex items-start justify-between">
+                  <div>
+                    <div class="text-xs font-medium text-amber-900 uppercase tracking-widest">The rule that produced this</div>
+                    <div class="text-sm font-medium text-stone-900 mt-1">Medication refill</div>
+                  </div>
+                  <button class="text-xs text-amber-700 hover:text-amber-900">Edit full rule →</button>
+                </div>
+                <div class="mt-3 space-y-2.5 text-sm">
+                  <div class="flex gap-2">
+                    <span class="text-xs font-medium text-stone-500 uppercase tracking-wider w-16 flex-shrink-0 pt-0.5">When</span>
+                    <span class="text-stone-700">Caller is asking about a prescription refill</span>
+                  </div>
+                  <div class="flex gap-2">
+                    <span class="text-xs font-medium text-stone-500 uppercase tracking-wider w-16 flex-shrink-0 pt-0.5">Do</span>
+                    <span class="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 bg-white border border-stone-200 rounded">
+                      <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Direct elsewhere
+                    </span>
+                  </div>
+                  <div class="flex gap-2">
+                    <span class="text-xs font-medium text-stone-500 uppercase tracking-wider w-16 flex-shrink-0 pt-0.5">Say</span>
+                    <span class="text-stone-700 italic">"Tell the caller to call the pharmacy directly… ask if they've had a check-in in the past year."</span>
+                  </div>
+                </div>
+                <div class="mt-3 flex gap-2">
+                  <button class="text-xs px-2.5 py-1.5 bg-white text-stone-700 rounded-md border border-stone-200 hover:border-stone-400">Change what Sage says</button>
+                  <button class="text-xs px-2.5 py-1.5 bg-white text-stone-700 rounded-md border border-stone-200 hover:border-stone-400">Change the action</button>
+                  <button class="text-xs px-2.5 py-1.5 bg-white text-stone-700 rounded-md border border-stone-200 hover:border-stone-400">Re-test</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Caller -->
+          <div class="flex gap-3 flex-row-reverse">
+            <div class="w-7 h-7 rounded-full bg-stone-200 flex items-center justify-center text-xs font-medium text-stone-700 flex-shrink-0 mt-1">C</div>
+            <div class="flex-1 flex justify-end">
+              <div class="max-w-md">
+                <div class="text-xs text-stone-500 mb-1 text-right">Caller · 0:22</div>
+                <div class="px-4 py-3 bg-stone-100 rounded-2xl rounded-tr-sm">
+                  <div class="text-sm text-stone-900">Yeah, I saw Dr. Patel last month.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Agent next -->
+          <div class="flex gap-3">
+            <div class="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-medium text-emerald-700 flex-shrink-0 mt-1">S</div>
+            <div class="flex-1">
+              <div class="text-xs text-stone-500 mb-1">Sage · 0:27</div>
+              <div class="agent-bubble px-4 py-3 bg-white border border-stone-200 rounded-2xl rounded-tl-sm max-w-md">
+                <div class="text-sm text-stone-900">Perfect. Our pharmacy line is 415-555-0182. They're open until 7pm tonight. Anything else I can help with?</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Caller -->
+          <div class="flex gap-3 flex-row-reverse">
+            <div class="w-7 h-7 rounded-full bg-stone-200 flex items-center justify-center text-xs font-medium text-stone-700 flex-shrink-0 mt-1">C</div>
+            <div class="flex-1 flex justify-end">
+              <div class="max-w-md">
+                <div class="text-xs text-stone-500 mb-1 text-right">Caller · 0:32</div>
+                <div class="px-4 py-3 bg-stone-100 rounded-2xl rounded-tr-sm">
+                  <div class="text-sm text-stone-900">Nope, that's it. Thanks!</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- End -->
+          <div class="flex justify-center pt-4">
+            <div class="text-xs text-stone-400 px-3 py-1 bg-stone-100 rounded-full">Call ended · 0:36</div>
+          </div>
+
+        </div>
+
+        <!-- "Did Sage do the right thing?" prompt -->
+        <div class="mt-10 p-5 bg-white border border-stone-200 rounded-2xl">
+          <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center">
+              <span class="text-stone-700 text-lg">?</span>
+            </div>
+            <div class="flex-1">
+              <div class="text-sm font-medium text-stone-900">Did Sage do the right thing?</div>
+              <p class="text-xs text-stone-500 mt-1">You can teach Sage by editing the rules behind any response, or by running a new test call with a different scenario.</p>
+              <div class="mt-4 flex gap-2">
+                <button class="text-sm px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md hover:bg-emerald-100">👍 Yes, save this as expected</button>
+                <button class="text-sm px-3 py-1.5 bg-white text-stone-700 border border-stone-200 rounded-md hover:bg-stone-50">Run a different scenario</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Right sidebar: active rules -->
+    <div class="w-80 bg-white border-l border-stone-200 flex flex-col">
+      <div class="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+        <div>
+          <div class="text-xs font-medium text-stone-400 uppercase tracking-widest">Active rules</div>
+          <p class="text-xs text-stone-500 mt-0.5">What's shaping Sage's behavior</p>
+        </div>
+        <button class="text-xs text-stone-500 hover:text-stone-900">View all →</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto scrollbar-thin px-3 py-3 space-y-2">
+
+        <div class="p-3 bg-amber-50/40 border border-amber-200/60 rounded-lg">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            <div class="text-xs font-medium text-amber-900">Just fired</div>
+          </div>
+          <div class="text-sm font-medium text-stone-900 mt-1.5">Medication refill</div>
+          <div class="text-xs text-stone-500 mt-0.5">Direct to pharmacy + ask about recent visit</div>
+        </div>
+
+        <div class="p-3 bg-white border border-stone-200 rounded-lg">
+          <div class="text-xs text-stone-500 uppercase tracking-wider">Default intent</div>
+          <div class="text-sm font-medium text-stone-900 mt-1">Scheduling</div>
+          <div class="text-xs text-stone-500 mt-0.5">Transfer to staff line</div>
+        </div>
+
+        <div class="p-3 bg-white border border-stone-200 rounded-lg">
+          <div class="text-xs text-stone-500 uppercase tracking-wider">Default intent</div>
+          <div class="text-sm font-medium text-stone-900 mt-1">Billing</div>
+          <div class="text-xs text-stone-500 mt-0.5">Take a message</div>
+        </div>
+
+        <div class="p-3 bg-white border border-stone-200 rounded-lg">
+          <div class="text-xs text-stone-500 uppercase tracking-wider">Default intent</div>
+          <div class="text-sm font-medium text-stone-900 mt-1">Clinical question</div>
+          <div class="text-xs text-stone-500 mt-0.5">Prep message for nurse triage</div>
+        </div>
+
+        <div class="p-3 bg-white border border-stone-200 rounded-lg">
+          <div class="text-xs text-stone-500 uppercase tracking-wider">Custom · IIT</div>
+          <div class="text-sm font-medium text-stone-900 mt-1">Clinical trial inquiry</div>
+          <div class="text-xs text-stone-500 mt-0.5">Answer + share scheduling link</div>
+        </div>
+
+        <div class="p-3 bg-stone-50 border border-dashed border-stone-300 rounded-lg flex items-center gap-2 text-stone-500 hover:text-stone-900 cursor-pointer">
+          <span class="text-sm">+ New rule from this call</span>
+        </div>
+
+      </div>
+
+      <div class="border-t border-stone-100 px-4 py-3 bg-stone-50">
+        <div class="text-xs text-stone-600 leading-relaxed">
+          <span class="font-medium">Sage knows about:</span> 5 intents · 12 KB entries · 3 transfer numbers
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

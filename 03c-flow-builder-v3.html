@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Option 3 v3 · Conditional Editor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 3px; }
+    .canvas-bg { background-image: radial-gradient(circle, #e7e5e4 1px, transparent 1px); background-size: 16px 16px; }
+    .flow-node { transition: all 0.15s; cursor: pointer; }
+    .flow-node:hover { transform: translateY(-1px); box-shadow: 0 8px 24px -8px rgba(0,0,0,0.12); }
+    .flow-node.selected { box-shadow: 0 0 0 2px #1c1917, 0 8px 24px -8px rgba(0,0,0,0.15); }
+    .flow-node.firing { animation: pulse 1.2s ease-in-out infinite; box-shadow: 0 0 0 3px #fbbf24, 0 8px 24px -8px rgba(0,0,0,0.2); }
+    @keyframes pulse { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)} }
+    .side-panel { transition: transform 0.2s ease; }
+    .side-panel.hidden { transform: translateX(100%); }
+    .test-drawer { transition: transform 0.25s ease; }
+    .test-drawer.collapsed { transform: translateY(calc(100% - 56px)); }
+    .action-option { transition: all 0.12s; }
+    .action-option:hover { background: #f5f5f4; }
+    .action-option.selected { background: #1c1917; color: white; }
+    .action-option.selected .opt-icon { background: rgba(255,255,255,0.1); }
+    .action-option.selected .opt-desc { color: rgba(255,255,255,0.7); }
+    .add-dropdown { animation: dropIn 0.15s ease-out; transform-origin: top left; }
+    @keyframes dropIn { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  </style>
+</head>
+<body class="bg-stone-50 h-screen overflow-hidden">
+
+  <div class="h-14 bg-white border-b border-stone-200 flex items-center justify-between px-6 relative z-10">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="text-sm text-stone-500 hover:text-stone-900">← Gallery</a>
+      <div class="h-4 w-px bg-stone-200"></div>
+      <div class="text-sm font-medium text-stone-900">Agent Settings</div>
+      <span class="text-stone-300">/</span>
+      <div class="text-sm text-stone-500">Conversation flow</div>
+      <span class="text-xs px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded ml-2 border border-emerald-200">v3 · conditional editor</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="mode-tabs" class="flex items-center gap-1 bg-stone-100 rounded-md p-0.5">
+        <button data-mode="business" class="mode-tab text-xs px-2.5 py-1 bg-white text-stone-900 rounded shadow-sm">Business hours · 9–5</button>
+        <button data-mode="lunch" class="mode-tab text-xs px-2.5 py-1 text-stone-600 hover:text-stone-900">Lunch · 12–1</button>
+        <button data-mode="afterhours" class="mode-tab text-xs px-2.5 py-1 text-stone-600 hover:text-stone-900">After hours</button>
+      </div>
+      <div class="h-5 w-px bg-stone-200"></div>
+      <span id="draft-pill" class="text-xs text-stone-500 flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        All published
+      </span>
+      <button id="open-test" class="text-xs text-stone-600 hover:text-stone-900 px-2.5 py-1.5 rounded-md hover:bg-stone-50">Test flow</button>
+      <button id="publish-btn" disabled class="text-sm bg-stone-200 text-stone-400 px-3 py-1.5 rounded-md cursor-not-allowed">Publish</button>
+    </div>
+  </div>
+
+  <div class="flex h-[calc(100vh-56px)] relative">
+
+    <div class="flex-1 relative overflow-hidden cursor-grab select-none" id="canvas-viewport" style="background: #fafaf9;">
+      <div id="mode-banner" class="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-4 py-2 bg-white border border-stone-200 rounded-full shadow-sm flex items-center gap-2">
+        <span id="mode-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        <span id="mode-label" class="text-xs font-medium text-stone-900">Business hours · Monday–Friday 9am–5pm</span>
+      </div>
+
+      <div id="canvas-transform" class="canvas-bg absolute top-0 left-0" style="width: 1300px; height: 900px; transform-origin: 0 0; transform: translate(0px, 0px) scale(1); will-change: transform;">
+        <svg id="canvas-svg" class="absolute top-0 left-0 pointer-events-none" style="width: 1300px; height: 900px"></svg>
+        <div id="canvas-nodes" class="relative" style="width: 1300px; height: 900px"></div>
+      </div>
+
+      <div class="absolute bottom-6 right-6 bg-white border border-stone-200 rounded-lg shadow-sm flex items-center divide-x divide-stone-100 z-10">
+        <button id="zoom-out" class="px-3 py-2 text-sm text-stone-600 hover:bg-stone-50">−</button>
+        <button id="zoom-reset" class="px-3 py-2 text-sm text-stone-700 min-w-[58px]" title="Reset zoom"><span id="zoom-pct">100%</span></button>
+        <button id="zoom-in" class="px-3 py-2 text-sm text-stone-600 hover:bg-stone-50">+</button>
+      </div>
+
+      <div class="absolute bottom-6 left-6 bg-white/80 backdrop-blur border border-stone-200 rounded-lg px-3 py-2 text-xs text-stone-500 z-10 pointer-events-none">
+        Drag to pan · ⌘/Ctrl + scroll or pinch to zoom
+      </div>
+    </div>
+
+    <div id="side-panel" class="side-panel hidden absolute right-0 top-0 h-full w-[28rem] bg-white border-l border-stone-200 shadow-xl z-40 flex flex-col">
+      <div class="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+        <div id="panel-title" class="text-base font-medium text-stone-900 min-w-0 flex-1">—</div>
+        <button id="panel-close" class="text-stone-400 hover:text-stone-900 text-xl leading-none ml-2">×</button>
+      </div>
+      <div id="panel-body" class="flex-1 overflow-y-auto scrollbar-thin"></div>
+      <div class="border-t border-stone-100 p-4 flex items-center justify-between">
+        <button id="panel-delete" class="text-xs text-red-600 hover:text-red-700">Delete intent</button>
+        <div class="flex gap-2">
+          <button id="panel-cancel" class="text-xs px-3 py-1.5 text-stone-600 hover:bg-stone-50 rounded-md">Cancel</button>
+          <button id="panel-save" class="text-xs px-3 py-1.5 bg-stone-900 text-white rounded-md hover:bg-stone-800">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="test-drawer" class="test-drawer collapsed absolute bottom-0 left-0 right-0 bg-white border-t border-stone-200 shadow-xl z-30 h-96">
+      <button id="test-toggle" class="w-full h-14 px-6 flex items-center justify-between border-b border-stone-100 hover:bg-stone-50">
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-red-500"></span>
+          <span class="text-sm font-medium text-stone-900">Test flow</span>
+          <span class="text-xs text-stone-500">Run a sample call through the active mode</span>
+        </div>
+        <span id="test-toggle-icon" class="text-stone-400">▴</span>
+      </button>
+      <div class="grid h-[calc(100%-56px)]" style="grid-template-columns: 220px 1fr">
+        <!-- Intent picker -->
+        <div class="border-r border-stone-100 p-4 overflow-y-auto scrollbar-thin flex flex-col">
+          <div class="text-xs font-medium text-stone-400 uppercase tracking-widest mb-2">Testing intent</div>
+          <div id="test-intent-picker" class="space-y-1"></div>
+          <div class="mt-auto pt-4 space-y-2">
+            <button id="test-show-prompt" class="text-xs text-stone-500 hover:text-stone-900 block">View composed prompt →</button>
+            <button id="test-reset" class="text-xs text-stone-500 hover:text-stone-900 block">Reset conversation</button>
+          </div>
+        </div>
+        <!-- Chat panel -->
+        <div class="flex flex-col h-full min-h-0">
+          <div id="test-transcript" class="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3"></div>
+          <form id="test-input-form" class="border-t border-stone-100 p-3 flex gap-2">
+            <input id="test-input" type="text" placeholder="Type as the caller…" autocomplete="off"
+              class="flex-1 px-3 py-2 text-sm border border-stone-200 rounded-md focus:outline-none focus:border-stone-400" />
+            <button type="submit" class="text-sm bg-stone-900 text-white px-4 py-2 rounded-md hover:bg-stone-800">Send</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const ACTION_KINDS = {
+      transfer: { label: 'Transfer to a person', desc: 'Hand the caller to a phone number',  icon: '📞' },
+      message:  { label: 'Take a message',       desc: 'Agent gathers info, drops in inbox', icon: '📝' },
+      schedule: { label: 'Schedule appointment', desc: 'Book directly into the EHR',         icon: '📅', requiresEhr: true },
+    };
+
+    // EHR integration gate — when off, Schedule is disabled
+    const EHR_INTEGRATION_ENABLED = true;
+
+    // Inbox keys mirror PrimaryInboxSchema in
+    // server/api/src/modules/conversation/conversation.types.ts:121
+    const INBOX_LABELS = {
+      front_desk:    'Front desk',
+      billing:       'Billing',
+      clinical_team: 'Clinical team',
+    };
+    const inboxLabel = (key) => INBOX_LABELS[key] || key || 'Front desk';
+
+    // Upper bound on the free-text instructions a clinic can write per intent.
+    // Telemetry hook: log per-clinic prompt length distribution + frequency of edits.
+    const PROMPT_LIMIT = 500;
+
+    // Reusable per-clinic intake field library. Each field can be added to any intent's collect list.
+    // In production: a clinic_intake_fields table seeded with defaults; clinics can add custom ones.
+    const FIELD_LIBRARY = {
+      caller_name:             { label: 'Caller name',                  type: 'text'   },
+      callback_number:         { label: 'Callback phone',               type: 'phone'  },
+      dob:                     { label: 'Date of birth',                type: 'date'   },
+      patient_relation:        { label: 'Patient or proxy?',            type: 'choice' },
+      reason_brief:            { label: 'Brief reason for call',        type: 'text'   },
+      preferred_callback_time: { label: 'Preferred callback time',      type: 'text'   },
+      urgency:                 { label: 'Urgency level',                type: 'choice' },
+      pharmacy_name:           { label: 'Pharmacy',                     type: 'text'   },
+      medication:              { label: 'Medication name',              type: 'text'   },
+      account_number:          { label: 'Account number',               type: 'text'   },
+      symptom:                 { label: 'Symptom description',          type: 'text'   },
+      study_interest:          { label: "Which study they're asking about", type: 'text' },
+    };
+
+    // Per-intent default collect lists — seeded based on what each intent typically needs.
+    const DEFAULT_COLLECT = {
+      sched:    [['caller_name',true],['callback_number',true],['preferred_callback_time',false],['reason_brief',false]],
+      refill:   [['caller_name',true],['dob',true],['pharmacy_name',true],['medication',false]],
+      billing:  [['caller_name',true],['callback_number',true],['dob',false],['account_number',false]],
+      clinical: [['caller_name',true],['callback_number',true],['dob',true],['symptom',true],['urgency',true]],
+      trial:    [['caller_name',true],['callback_number',true],['study_interest',false]],
+    };
+
+    // Intents mirror the 5 canonical intents defined in
+    // server/api/src/modules/agent/transfer-intent-guide.ts (scheduling, billing,
+    // medication, clinical, general). Trigger examples are pulled verbatim from
+    // the "Positive" examples in that guide so the prototype mirrors what the
+    // model actually classifies on.
+    const FLOWS = {
+      business: {
+        label: "Business hours · Monday–Friday 9am–5pm",
+        intents: [
+          { id: 'scheduling', name: 'Scheduling', examples: ['I need to book an appointment', 'Can I reschedule my Tuesday visit?', 'Cancel my Friday appointment'], action: { type: 'transfer', targets: ['(415) 555-0142'] } },
+          { id: 'medication', name: 'Medication', examples: ['I need a refill on my blood-pressure med', 'The pharmacy says my prescription expired', "What's the status of my prior auth?"], action: { type: 'transfer', targets: ['(415) 555-0182'] } },
+          { id: 'billing',    name: 'Billing',    examples: ["I got a bill I don't understand", 'Set up a payment plan', 'Did my insurance cover the lab work?'], action: { type: 'message',  prompt: 'Collect: caller name, account/MRN if they have it, callback number, and a brief description of the billing question.', inbox: 'billing' } },
+          { id: 'clinical',   name: 'Clinical',   examples: ['I want to talk to a nurse about my labs', 'I have a question about my discharge instructions', "I'm having side effects from a new med"], action: { type: 'message',  prompt: 'Collect: name, DOB, what symptom or question they have, and urgency. Flag urgent if they mention chest pain, shortness of breath, or any other emergency signs.', inbox: 'clinical_team' } },
+          { id: 'general',    name: 'General',    examples: ['Can I speak to someone?', 'Just put me through to the office'], action: { type: 'message',  prompt: 'Take down the caller name, callback number, and what they need.', inbox: 'front_desk' } },
+          { id: 'trial',      name: 'Clinical trial inquiry', custom: true, examples: ['how do I sign up for the trial', "I'm interested in the study"], action: { type: 'message', prompt: "Collect: caller name, callback number, and which study they're asking about. The research coordinator will follow up within a day.", inbox: 'clinical_team' } },
+        ],
+      },
+      lunch: {
+        label: "Lunch · 12pm–1pm",
+        intents: [
+          { id: 'scheduling', name: 'Scheduling', examples: ['I need to book an appointment'], action: { type: 'message',  prompt: 'Take down the caller name and what they want to schedule. The scheduling team will call back within an hour.', inbox: 'front_desk' }, overridden: true },
+          { id: 'medication', name: 'Medication', examples: ['I need a refill on my blood-pressure med'], action: { type: 'transfer', targets: ['(415) 555-0182'] } },
+          { id: 'billing',    name: 'Billing',    examples: ["I got a bill I don't understand"], action: { type: 'message',  prompt: 'Collect: caller name and a brief description of the billing question.', inbox: 'billing' } },
+          { id: 'clinical',   name: 'Clinical',   examples: ['I want to talk to a nurse about my labs'], action: { type: 'transfer', targets: ['(415) 555-0911'] }, overridden: true },
+          { id: 'general',    name: 'General',    examples: ['Can I speak to someone?'], action: { type: 'message',  prompt: 'Take down the caller name, callback number, and reason for calling.', inbox: 'front_desk' } },
+          { id: 'trial',      name: 'Clinical trial inquiry', custom: true, examples: ['how do I sign up for the trial'], action: { type: 'message', prompt: "Collect: caller name, callback number, and which study they're asking about.", inbox: 'clinical_team' } },
+        ],
+      },
+      afterhours: {
+        label: "After hours · Mon–Fri after 5pm + weekends",
+        intents: [
+          { id: 'urgent',     name: 'Urgent / emergency', custom: true, examples: ['chest pain', 'emergency', 'this is urgent'], action: { type: 'transfer', targets: ['(415) 555-0911', '(415) 555-0912'] } },
+          { id: 'scheduling', name: 'Scheduling', examples: ['I need to book an appointment'], action: { type: 'message', prompt: 'Take a message — scheduling will call back in the morning.', inbox: 'front_desk' }, overridden: true },
+          { id: 'medication', name: 'Medication', examples: ['I need a refill on my blood-pressure med'], action: { type: 'message', prompt: 'Take down name, DOB, medication, and pharmacy. Refill queue handles in the morning.', inbox: 'front_desk' }, overridden: true },
+          { id: 'billing',    name: 'Billing',    examples: ["I got a bill I don't understand"], action: { type: 'message', prompt: 'Take down the caller name and callback number.', inbox: 'billing' } },
+          { id: 'clinical',   name: 'Clinical',   examples: ['I want to talk to a nurse about my labs'], action: { type: 'transfer', targets: ['(415) 555-0911'] }, overridden: true },
+          { id: 'general',    name: 'General',    examples: ['Can I speak to someone?'], action: { type: 'message', prompt: 'Take a message — someone will follow up in the morning.', inbox: 'front_desk' } },
+        ],
+      },
+    };
+
+    // Seed each message action with structured intake fields (per-intent defaults).
+    Object.values(FLOWS).forEach(flow => {
+      flow.intents.forEach(intent => {
+        if (intent.action.type === 'message' && !intent.action.collect) {
+          const seed = DEFAULT_COLLECT[intent.id] || [['caller_name', true], ['callback_number', true]];
+          intent.action.collect = seed.map(([key, required]) => ({ key, required }));
+        }
+      });
+    });
+
+    let activeMode = 'business';
+
+    const $nodes = document.getElementById('canvas-nodes');
+    const $svg = document.getElementById('canvas-svg');
+    const $modeLabel = document.getElementById('mode-label');
+    const $modeDot = document.getElementById('mode-dot');
+
+    function render() {
+      const flow = FLOWS[activeMode];
+      $modeLabel.textContent = flow.label;
+      $modeDot.className = `w-1.5 h-1.5 rounded-full ${activeMode === 'business' ? 'bg-emerald-500' : activeMode === 'lunch' ? 'bg-amber-500' : 'bg-stone-500'}`;
+
+      $nodes.innerHTML = '';
+      $svg.innerHTML = '';
+
+      $nodes.appendChild(makeStartNode());
+      $nodes.appendChild(makeClassifyNode());
+
+      flow.intents.forEach((intent, i) => {
+        const top = 30 + i * 115;
+        $nodes.appendChild(makeIntentNode(intent, top));
+        $nodes.appendChild(makeActionNode(intent, top));
+        drawConnection(580, 110, 720, top + 30, `c-classify-${intent.id}`);
+        drawConnection(920, top + 30, 1020, top + 30, `c-${intent.id}-action`);
+      });
+
+      const addTop = 30 + flow.intents.length * 115;
+      $nodes.appendChild(makeAddIntentButton(addTop));
+      drawConnection(280, 110, 380, 110, 'c-start-classify');
+    }
+
+    function makeStartNode() {
+      const el = document.createElement('div');
+      el.className = 'flow-node absolute';
+      el.style.left = '100px'; el.style.top = '80px';
+      el.innerHTML = `
+        <div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+          <div class="text-sm font-medium text-stone-900">Incoming call</div>
+          <div class="text-xs text-stone-500 mt-0.5">${FLOWS[activeMode].label}</div>
+        </div>`;
+      return el;
+    }
+
+    function makeClassifyNode() {
+      const el = document.createElement('div');
+      el.className = 'flow-node absolute';
+      el.style.left = '380px'; el.style.top = '80px';
+      el.dataset.nodeId = 'classify';
+      el.innerHTML = `
+        <div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+          <div class="text-sm font-medium text-stone-900">What is the caller asking about?</div>
+          <div class="text-xs text-stone-500 mt-0.5">${FLOWS[activeMode].intents.length} intents</div>
+        </div>`;
+      return el;
+    }
+
+    function makeIntentNode(intent, top) {
+      const el = document.createElement('div');
+      el.className = 'flow-node absolute';
+      el.style.left = '720px'; el.style.top = `${top}px`;
+      el.dataset.nodeId = `intent-${intent.id}`;
+      const ring = intent.custom ? 'border-2 border-purple-300 bg-purple-50/30' : 'border border-stone-200 bg-white';
+      const triggerLine = intent.custom && intent.examples?.[0]
+        ? `<div class="text-xs text-stone-500 mt-0.5 italic">"${intent.examples[0]}"</div>`
+        : '';
+      el.innerHTML = `
+        <div class="w-48 ${ring} rounded-xl p-3 shadow-sm">
+          <div class="text-sm font-medium text-stone-900">${intent.name}</div>
+          ${triggerLine}
+        </div>`;
+      el.addEventListener('click', () => openIntentPanel(intent.id));
+      return el;
+    }
+
+    function makeActionNode(intent, top) {
+      const el = document.createElement('div');
+      el.className = 'flow-node absolute';
+      el.style.left = '1020px'; el.style.top = `${top}px`;
+      el.dataset.nodeId = `action-${intent.id}`;
+      const a = intent.action;
+      const targetCount = a.targets?.length || 0;
+      const detailLine = a.type === 'transfer' ? `Transfer${targetCount > 1 ? `<div class="text-xs text-stone-500 mt-0.5">${targetCount} numbers</div>` : ''}`
+                       : a.type === 'message'  ? `Take a message<div class="text-xs text-stone-500 mt-0.5">→ ${inboxLabel(a.inbox)}</div>`
+                       : a.type === 'schedule' ? `Schedule in EHR<div class="text-xs text-stone-500 mt-0.5">${((a.capabilities || []).map(c => ({ book:'Book', reschedule:'Reschedule', cancel:'Cancel' })[c]).filter(Boolean).join(' · ')) || 'No actions enabled'}</div>`
+                       : '';
+      const overrideTag = intent.overridden ? `<div class="absolute -top-2 -right-2 text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded border border-amber-200">override</div>` : '';
+      el.innerHTML = `
+        <div class="relative w-52 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+          ${overrideTag}
+          <div class="text-sm text-stone-900">${detailLine}</div>
+        </div>`;
+      el.addEventListener('click', () => openIntentPanel(intent.id));
+      return el;
+    }
+
+    function drawConnection(x1, y1, x2, y2, id) {
+      const xc = x1 + (x2 - x1) * 0.5;
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', `M ${x1} ${y1} C ${xc} ${y1}, ${xc} ${y2}, ${x2} ${y2}`);
+      path.setAttribute('stroke', '#d6d3d1'); path.setAttribute('stroke-width', '2');
+      path.setAttribute('fill', 'none'); path.setAttribute('id', id);
+      $svg.appendChild(path);
+      const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      arrow.setAttribute('points', `${x2-6},${y2-3} ${x2},${y2} ${x2-6},${y2+3}`);
+      arrow.setAttribute('fill', '#d6d3d1');
+      $svg.appendChild(arrow);
+    }
+
+    function makeAddIntentButton(top) {
+      const el = document.createElement('div');
+      el.className = 'absolute';
+      el.style.left = '720px'; el.style.top = `${top}px`;
+      el.innerHTML = `
+        <div class="relative">
+          <button id="add-intent-trigger" class="w-48 border border-dashed border-stone-300 rounded-xl px-3 py-3 text-sm text-stone-500 hover:text-stone-900 hover:border-stone-500 hover:bg-white transition flex items-center justify-center gap-1.5 group">
+            <span class="w-4 h-4 rounded-full bg-stone-100 group-hover:bg-stone-900 group-hover:text-white flex items-center justify-center text-xs leading-none transition">+</span>
+            <span>Add intent</span>
+          </button>
+          <div id="add-intent-dropdown" class="hidden add-dropdown absolute left-0 mt-1.5 w-72 bg-white border border-stone-200 rounded-xl shadow-lg z-30 overflow-hidden">
+            <div class="px-3 py-2 border-b border-stone-100"><div class="text-[11px] font-medium text-stone-400 uppercase tracking-widest">Suggested intents</div></div>
+            <div class="py-1 max-h-72 overflow-y-auto scrollbar-thin">
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Insurance verification" data-example="Do you take my insurance?">
+                <span class="text-base">🛡️</span><div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Insurance verification</div><div class="text-xs text-stone-500 truncate">"Do you take my insurance?"</div></div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="New patient registration" data-example="I'd like to become a new patient">
+                <span class="text-base">📋</span><div class="flex-1 min-w-0"><div class="text-sm text-stone-900">New patient registration</div><div class="text-xs text-stone-500 truncate">"I'd like to become a new patient"</div></div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Lab results inquiry" data-example="I'm calling about my lab results">
+                <span class="text-base">🧪</span><div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Lab results inquiry</div><div class="text-xs text-stone-500 truncate">"I'm calling about my lab results"</div></div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Spanish-speaking caller" data-example="Hola, ¿hablan español?">
+                <span class="text-base">🌐</span><div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Spanish-speaking caller</div><div class="text-xs text-stone-500 truncate">"Hola, ¿hablan español?"</div></div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Records request" data-example="I need a copy of my medical records">
+                <span class="text-base">📄</span><div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Medical records request</div><div class="text-xs text-stone-500 truncate">"I need a copy of my medical records"</div></div>
+              </button>
+            </div>
+            <div class="border-t border-stone-100 py-1">
+              <button id="add-custom-intent" class="w-full text-left px-3 py-2.5 hover:bg-stone-50 flex items-center gap-2.5 text-stone-900">
+                <span class="w-5 h-5 rounded border border-dashed border-stone-400 flex items-center justify-center text-xs">+</span>
+                <div><div class="text-sm font-medium">Custom intent…</div><div class="text-xs text-stone-500">Define your own from scratch</div></div>
+              </button>
+            </div>
+          </div>
+        </div>`;
+      setTimeout(() => wireAddIntentDropdown(), 0);
+      return el;
+    }
+
+    function wireAddIntentDropdown() {
+      const trigger = document.getElementById('add-intent-trigger');
+      const dropdown = document.getElementById('add-intent-dropdown');
+      if (!trigger || !dropdown) return;
+      trigger.addEventListener('click', (e) => { e.stopPropagation(); dropdown.classList.toggle('hidden'); });
+      document.addEventListener('click', (e) => { if (!dropdown.contains(e.target) && e.target !== trigger) dropdown.classList.add('hidden'); });
+      document.querySelectorAll('.suggested-intent').forEach(btn => btn.addEventListener('click', () => { addNewIntent({ name: btn.dataset.name, example: btn.dataset.example }); dropdown.classList.add('hidden'); }));
+      document.getElementById('add-custom-intent').addEventListener('click', () => { addNewIntent({ name: 'New custom intent', example: 'When the caller says…' }); dropdown.classList.add('hidden'); });
+    }
+
+    function addNewIntent({ name, example }) {
+      const id = `custom_${Date.now()}`;
+      FLOWS[activeMode].intents.push({ id, name, custom: true, examples: [example], action: { type: 'message', prompt: 'Take down their name, callback number, and the reason for their call.', inbox: 'front_desk' } });
+      render();
+      setTimeout(() => openIntentPanel(id), 50);
+    }
+
+    const $sidePanel = document.getElementById('side-panel');
+    const $panelTitle = document.getElementById('panel-title');
+    const $panelBody = document.getElementById('panel-body');
+
+    function openIntentPanel(intentId) {
+      const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
+      if (!intent) return;
+      document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('selected'));
+      document.querySelector(`[data-node-id="intent-${intent.id}"]`)?.classList.add('selected');
+      document.querySelector(`[data-node-id="action-${intent.id}"]`)?.classList.add('selected');
+      $panelTitle.textContent = intent.name;
+      $panelBody.innerHTML = renderIntentBody(intent);
+      wirePanelInteractions(intent);
+      $sidePanel.classList.remove('hidden');
+    }
+
+    function renderIntentBody(intent) {
+      return `
+        <div class="p-5 space-y-6">
+          ${intent.custom ? renderTriggerSignals(intent) : ''}
+
+          ${renderActionDropdown(intent.action.type)}
+
+          <div id="action-config" class="space-y-4">
+            ${renderActionConfig(intent.action, intent.id)}
+          </div>
+
+          ${intent.overridden ? `
+          <div class="p-3 bg-amber-50/50 border border-amber-200 rounded-lg text-xs text-amber-800">Overridden in this mode.</div>` : ''}
+        </div>
+      `;
+    }
+
+    function renderTriggerSignals(intent) {
+      const examples = intent.examples || [];
+      const escape = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      return `
+        <div>
+          <label class="text-xs font-medium text-stone-700">Trigger signals</label>
+          <div class="space-y-1.5 mt-2" id="trigger-examples-list">
+            ${examples.map((ex, i) => `
+              <div class="flex items-center gap-1.5">
+                <input type="text" value="${escape(ex)}" data-example-idx="${i}" class="trigger-example-input flex-1 px-3 py-2 text-sm border border-stone-200 rounded-md bg-white focus:outline-none focus:border-stone-400" placeholder="e.g. how do I sign up for the trial" />
+                ${examples.length > 1 ? `<button data-remove-example-idx="${i}" class="trigger-example-remove w-8 h-8 flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-stone-50 rounded-md">×</button>` : ''}
+              </div>
+            `).join('')}
+            <button id="trigger-example-add" class="w-full px-3 py-2 text-xs text-stone-500 hover:text-stone-900 border border-dashed border-stone-300 rounded-md hover:border-stone-400 text-left">+ Add example</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function refreshIntentNodeCard(intent) {
+      const $intent = document.querySelector(`[data-node-id="intent-${intent.id}"]`);
+      if (!$intent) return;
+      const oldTop = $intent.style.top;
+      const newNode = makeIntentNode(intent, parseInt(oldTop, 10));
+      newNode.classList.add('selected');
+      $intent.replaceWith(newNode);
+    }
+
+    function renderActionDropdown(currentType) {
+      const k = ACTION_KINDS[currentType];
+      return `
+        <div>
+          <label class="text-xs font-medium text-stone-700">Sage should…</label>
+          <div class="relative mt-1.5">
+            <button id="action-dropdown-trigger" class="w-full px-3 py-2.5 text-sm bg-white border border-stone-200 rounded-md flex items-center justify-between hover:border-stone-400 focus:outline-none focus:border-stone-400">
+              <span class="flex items-center gap-2.5">
+                <span class="text-base">${k.icon}</span>
+                <span class="text-stone-900 font-medium">${k.label}</span>
+              </span>
+              <span class="text-stone-400">▾</span>
+            </button>
+            <div id="action-dropdown-menu" class="hidden add-dropdown absolute left-0 right-0 mt-1.5 bg-white border border-stone-200 rounded-xl shadow-lg z-30 overflow-hidden">
+              ${Object.entries(ACTION_KINDS).map(([key, kk]) => {
+                const disabled = kk.requiresEhr && !EHR_INTEGRATION_ENABLED;
+                const isSelected = currentType === key;
+                return `
+                  <button ${disabled ? 'disabled' : `data-action-type="${key}"`} class="action-dropdown-option w-full text-left px-3 py-2.5 flex items-start gap-2.5 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-stone-50'} ${isSelected ? 'bg-stone-50/60' : ''} border-b border-stone-100 last:border-0">
+                    <span class="text-base mt-0.5">${kk.icon}</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm text-stone-900 ${isSelected ? 'font-medium' : ''}">${kk.label}</div>
+                      <div class="text-xs text-stone-500">${kk.desc}</div>
+                      ${disabled ? `<div class="text-[11px] text-amber-700 mt-1 flex items-center gap-1"><span>🔒</span> Requires EHR integration</div>` : ''}
+                    </div>
+                    ${isSelected ? '<span class="text-stone-900 text-sm">✓</span>' : ''}
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderActionConfig(action, intentId) {
+      if (action.type === 'transfer') {
+        // Migrate legacy single-target shape to targets array on the fly
+        if (!action.targets) action.targets = action.target ? [action.target] : [''];
+        const targets = action.targets;
+        return `
+          <div class="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-medium text-stone-700">Transfer to phone number${targets.length > 1 ? 's' : ''}</label>
+              ${targets.length > 1 ? `<span class="text-[11px] text-stone-500">Rings all simultaneously</span>` : ''}
+            </div>
+            <div class="space-y-2" id="transfer-targets">
+              ${targets.map((t, i) => `
+                <div class="flex items-center gap-1.5">
+                  <input type="text" value="${t}" data-target-idx="${i}" class="transfer-target-input flex-1 px-3 py-2 text-sm border border-stone-200 rounded-md font-mono bg-white focus:outline-none focus:border-stone-400" placeholder="(415) 555-0000" />
+                  ${targets.length > 1 ? `<button data-remove-idx="${i}" class="transfer-target-remove w-8 h-8 flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-white rounded-md">×</button>` : ''}
+                </div>
+              `).join('')}
+            </div>
+            <button id="transfer-add-target" class="w-full px-3 py-2 text-xs text-stone-500 hover:text-stone-900 border border-dashed border-stone-300 rounded-md hover:border-stone-400 text-left">+ Add another number</button>
+          </div>
+        `;
+      }
+
+      if (action.type === 'message') {
+        const prompt = action.prompt || '';
+        const len = prompt.length;
+        const warn = len > 400;
+        const collect = action.collect || [];
+        const usedKeys = new Set(collect.map(f => f.key));
+        const availableFields = Object.entries(FIELD_LIBRARY).filter(([k]) => !usedKeys.has(k));
+
+        return `
+          <!-- 1. Structured intake fields (collapsed by default) -->
+          <div class="bg-stone-50 border border-stone-200 rounded-xl overflow-hidden">
+            <button type="button" data-section="intake" class="section-toggle w-full p-4 flex items-center justify-between hover:bg-stone-100/50">
+              <div class="flex items-baseline gap-2">
+                <span class="text-xs font-medium text-stone-700">Required intake fields</span>
+                <span class="text-[11px] text-stone-400">${collect.length} field${collect.length === 1 ? '' : 's'}</span>
+              </div>
+              <span class="section-chevron text-stone-400 text-xs transition-transform">▾</span>
+            </button>
+            <div data-section-content="intake" class="section-content hidden px-4 pb-4">
+
+            <div class="space-y-1.5">
+              ${collect.map(f => {
+                const def = FIELD_LIBRARY[f.key] || { label: f.key, type: 'text' };
+                return `
+                  <div class="flex items-center gap-2 p-2 bg-white border border-stone-200 rounded-md">
+                    <span class="text-stone-300 text-xs leading-none cursor-grab select-none" title="Drag to reorder">⋮⋮</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm text-stone-900 truncate">${def.label}</div>
+                      <div class="text-[10px] text-stone-400" style="font-family:'JetBrains Mono',ui-monospace,monospace">${f.key} · ${def.type}</div>
+                    </div>
+                    <button onclick="removeField('${intentId}','${f.key}')" class="text-stone-400 hover:text-red-600 text-base w-5 h-5 flex items-center justify-center leading-none" title="Remove field">×</button>
+                  </div>
+                `;
+              }).join('')}
+
+              <div class="relative">
+                <button id="add-field-trigger" type="button" class="w-full text-left px-3 py-2 text-sm text-stone-500 hover:text-stone-900 border border-dashed border-stone-300 rounded-md flex items-center gap-2 hover:border-stone-400 hover:bg-white transition">
+                  <span class="text-base leading-none">+</span> Add field
+                </button>
+                <div id="add-field-menu" class="hidden add-dropdown absolute left-0 right-0 mt-1.5 bg-white border border-stone-200 rounded-xl shadow-lg z-30 overflow-hidden">
+                  <div class="px-3 py-2 border-b border-stone-100">
+                    <div class="text-[11px] font-medium text-stone-400 uppercase tracking-widest">Add to intake</div>
+                  </div>
+                  <div class="py-1 max-h-64 overflow-y-auto scrollbar-thin">
+                    ${availableFields.length ? availableFields.map(([k, def]) => `
+                      <button onclick="addField('${intentId}','${k}')" type="button" class="w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5">
+                        <div class="flex-1 min-w-0">
+                          <div class="text-sm text-stone-900">${def.label}</div>
+                          <div class="text-[10px] text-stone-400" style="font-family:'JetBrains Mono',ui-monospace,monospace">${k} · ${def.type}</div>
+                        </div>
+                      </button>
+                    `).join('') : '<div class="px-3 py-3 text-xs text-stone-500 text-center">All library fields added.</div>'}
+                  </div>
+                  <div class="border-t border-stone-100 py-1">
+                    <button type="button" class="w-full text-left px-3 py-2 hover:bg-stone-50 text-sm text-stone-700 flex items-center gap-2.5">
+                      <span class="w-5 h-5 rounded border border-dashed border-stone-400 flex items-center justify-center text-xs leading-none">+</span>
+                      <div><div>Define a custom field…</div><div class="text-[10px] text-stone-500">e.g., insurance carrier, member ID</div></div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <!-- 2. Free-text rider (collapsed by default) -->
+          <div class="bg-stone-50 border border-stone-200 rounded-xl overflow-hidden">
+            <button type="button" data-section="instructions" class="section-toggle w-full p-4 flex items-center justify-between hover:bg-stone-100/50">
+              <div class="flex items-baseline gap-2">
+                <span class="text-xs font-medium text-stone-700">Additional instructions</span>
+                <span class="text-[11px] text-stone-400 font-normal">optional</span>
+                ${len > 0 ? `<span class="text-[11px] text-stone-400">${len} chars</span>` : ''}
+              </div>
+              <span class="section-chevron text-stone-400 text-xs transition-transform">▾</span>
+            </button>
+            <div data-section-content="instructions" class="section-content hidden px-4 pb-4">
+              <div class="flex items-baseline justify-end mb-2">
+                <span id="prompt-counter" class="text-[11px] tabular-nums ${warn ? 'text-amber-600' : 'text-stone-400'}">${len}/${PROMPT_LIMIT}</span>
+              </div>
+              <textarea
+                id="prompt-textarea"
+                data-intent-id="${intentId || ''}"
+                maxlength="${PROMPT_LIMIT}"
+                oninput="handlePromptInput(this)"
+                placeholder="e.g., If the caller mentions a medication, ask which one. Note any preferred follow-up time."
+                class="w-full h-24 p-3 text-sm bg-white border border-stone-200 rounded-md resize-none focus:outline-none focus:border-stone-400"
+              >${prompt}</textarea>
+              <div class="mt-2 space-y-1 text-[11px] text-stone-500 leading-snug">
+                <div><strong class="text-stone-700">Will shape</strong>: which follow-up questions Sage asks, tone, what gets noted.</div>
+                <div><strong class="text-stone-700">Won't change</strong>: structured fields above or the inbox below.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Inbox — matches PrimaryInboxSchema in
+               server/api/src/modules/conversation/conversation.types.ts -->
+          <div class="p-4 bg-stone-50 border border-stone-200 rounded-xl">
+            <label class="text-xs font-medium text-stone-700">Send message to inbox</label>
+            <select class="mt-1.5 w-full px-3 py-2 text-sm border border-stone-200 rounded-md bg-white">
+              <option value="front_desk"    ${action.inbox === 'front_desk' ? 'selected' : ''}>Front desk</option>
+              <option value="billing"       ${action.inbox === 'billing' ? 'selected' : ''}>Billing</option>
+              <option value="clinical_team" ${action.inbox === 'clinical_team' ? 'selected' : ''}>Clinical team</option>
+            </select>
+          </div>
+        `;
+      }
+
+      if (action.type === 'schedule') {
+        const caps = action.capabilities || ['book', 'reschedule'];
+        const has = (k) => caps.includes(k);
+        return `
+          <div class="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-3">
+            <label class="text-xs font-medium text-stone-700">What Sage can do in the EHR</label>
+            <div class="space-y-1.5">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" ${has('book') ? 'checked' : ''} data-cap="book" class="schedule-cap rounded border-stone-300"/>
+                <span class="text-sm text-stone-700">Book a new appointment</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" ${has('reschedule') ? 'checked' : ''} data-cap="reschedule" class="schedule-cap rounded border-stone-300"/>
+                <span class="text-sm text-stone-700">Reschedule an existing appointment</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" ${has('cancel') ? 'checked' : ''} data-cap="cancel" class="schedule-cap rounded border-stone-300"/>
+                <span class="text-sm text-stone-700">Cancel an appointment</span>
+              </label>
+            </div>
+          </div>
+        `;
+      }
+
+      return '';
+    }
+
+    function wirePanelInteractions(intent) {
+      // Action dropdown trigger
+      const trigger = document.getElementById('action-dropdown-trigger');
+      const menu = document.getElementById('action-dropdown-menu');
+      if (trigger && menu) {
+        trigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          menu.classList.toggle('hidden');
+        });
+      }
+      // Action option selection
+      $panelBody.querySelectorAll('.action-dropdown-option').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!btn.dataset.actionType) return;
+          intent.action = freshActionDefaults(btn.dataset.actionType, intent.action);
+          // 1. Update the editor body
+          $panelBody.innerHTML = renderIntentBody(intent);
+          wirePanelInteractions(intent);
+          // 2. Update the canvas card
+          render();
+          document.querySelector(`[data-node-id="intent-${intent.id}"]`)?.classList.add('selected');
+          document.querySelector(`[data-node-id="action-${intent.id}"]`)?.classList.add('selected');
+          // 3. Mark draft
+          markDirty();
+        });
+      });
+
+      // Add-field dropdown (only present on message-type actions)
+      const fieldTrigger = document.getElementById('add-field-trigger');
+      const fieldMenu    = document.getElementById('add-field-menu');
+      if (fieldTrigger && fieldMenu) {
+        fieldTrigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          fieldMenu.classList.toggle('hidden');
+        });
+      }
+
+      // Form inputs inside the config — mark dirty on edit
+      $panelBody.querySelectorAll('input, textarea, select').forEach(el => {
+        el.addEventListener('input', markDirty);
+        el.addEventListener('change', markDirty);
+      });
+
+      // Schedule capability toggles
+      $panelBody.querySelectorAll('.schedule-cap').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const cap = cb.dataset.cap;
+          if (!intent.action.capabilities) intent.action.capabilities = [];
+          if (cb.checked) {
+            if (!intent.action.capabilities.includes(cap)) intent.action.capabilities.push(cap);
+          } else {
+            intent.action.capabilities = intent.action.capabilities.filter(c => c !== cap);
+          }
+          refreshActionNodeCard(intent);
+          markDirty();
+        });
+      });
+
+      // Collapsible sections (intake fields / additional instructions)
+      $panelBody.querySelectorAll('.section-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.section;
+          const content = $panelBody.querySelector(`[data-section-content="${id}"]`);
+          const chevron = btn.querySelector('.section-chevron');
+          if (!content) return;
+          const willOpen = content.classList.contains('hidden');
+          content.classList.toggle('hidden');
+          if (chevron) chevron.style.transform = willOpen ? 'rotate(180deg)' : '';
+        });
+      });
+
+      // Custom intent: trigger signal examples
+      $panelBody.querySelectorAll('.trigger-example-input').forEach(input => {
+        input.addEventListener('input', () => {
+          const idx = parseInt(input.dataset.exampleIdx, 10);
+          if (!intent.examples) intent.examples = [];
+          intent.examples[idx] = input.value;
+          refreshIntentNodeCard(intent);
+        });
+      });
+      $panelBody.querySelectorAll('.trigger-example-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.removeExampleIdx, 10);
+          intent.examples.splice(idx, 1);
+          $panelBody.innerHTML = renderIntentBody(intent);
+          wirePanelInteractions(intent);
+          refreshIntentNodeCard(intent);
+          markDirty();
+        });
+      });
+      const addEx = document.getElementById('trigger-example-add');
+      if (addEx) addEx.addEventListener('click', () => {
+        if (!intent.examples) intent.examples = [];
+        intent.examples.push('');
+        $panelBody.innerHTML = renderIntentBody(intent);
+        wirePanelInteractions(intent);
+        markDirty();
+      });
+
+      // Transfer: multi-number inputs
+      $panelBody.querySelectorAll('.transfer-target-input').forEach(input => {
+        input.addEventListener('input', () => {
+          const idx = parseInt(input.dataset.targetIdx, 10);
+          if (!intent.action.targets) intent.action.targets = [];
+          intent.action.targets[idx] = input.value;
+          // Update canvas card live (without losing input focus)
+          refreshActionNodeCard(intent);
+        });
+      });
+      $panelBody.querySelectorAll('.transfer-target-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.removeIdx, 10);
+          intent.action.targets.splice(idx, 1);
+          refreshActionConfig(intent);
+          refreshActionNodeCard(intent);
+          markDirty();
+        });
+      });
+      const addBtn = document.getElementById('transfer-add-target');
+      if (addBtn) addBtn.addEventListener('click', () => {
+        if (!intent.action.targets) intent.action.targets = [];
+        intent.action.targets.push('');
+        refreshActionConfig(intent);
+        markDirty();
+      });
+    }
+
+    function refreshActionConfig(intent) {
+      const $cfg = document.getElementById('action-config');
+      if (!$cfg) return;
+      $cfg.innerHTML = renderActionConfig(intent.action);
+      wirePanelInteractions(intent);
+    }
+
+    function refreshActionNodeCard(intent) {
+      const $action = document.querySelector(`[data-node-id="action-${intent.id}"]`);
+      if (!$action) return;
+      // Rebuild just this node
+      const oldTop = $action.style.top;
+      const newNode = makeActionNode(intent, parseInt(oldTop, 10));
+      newNode.classList.add('selected');
+      $action.replaceWith(newNode);
+    }
+
+    // ============================================================
+    // Structured-field operations (used by inline onclick handlers)
+    // ============================================================
+    function currentOpenIntent() {
+      const selected = document.querySelector('.flow-node.selected[data-node-id^="intent-"], .flow-node.selected[data-node-id^="action-"]');
+      if (!selected) return null;
+      const id = selected.dataset.nodeId.replace(/^(intent|action)-/, '');
+      return FLOWS[activeMode].intents.find(i => i.id === id) || null;
+    }
+
+    function setFieldRequired(intentId, key, value) {
+      const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
+      if (!intent) return;
+      const f = (intent.action.collect || []).find(f => f.key === key);
+      if (!f) return;
+      f.required = (value === 'true');
+      markDirty();
+      // No re-render needed — the select updated itself.
+    }
+
+    function removeField(intentId, key) {
+      const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
+      if (!intent) return;
+      intent.action.collect = (intent.action.collect || []).filter(f => f.key !== key);
+      $panelBody.innerHTML = renderIntentBody(intent);
+      wirePanelInteractions(intent);
+      markDirty();
+    }
+
+    function addField(intentId, key) {
+      const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
+      if (!intent) return;
+      if (!intent.action.collect) intent.action.collect = [];
+      // Don't double-add
+      if (intent.action.collect.some(f => f.key === key)) return;
+      intent.action.collect.push({ key, required: false });
+      $panelBody.innerHTML = renderIntentBody(intent);
+      wirePanelInteractions(intent);
+      markDirty();
+    }
+
+    // Close add-field menu on outside-click
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('add-field-menu');
+      const trigger = document.getElementById('add-field-trigger');
+      if (!menu || menu.classList.contains('hidden')) return;
+      if (menu.contains(e.target) || trigger?.contains(e.target)) return;
+      menu.classList.add('hidden');
+    });
+
+    // Live character counter for the free-text rider
+    function handlePromptInput(textarea) {
+      const len = textarea.value.length;
+      const counter = document.getElementById('prompt-counter');
+      if (counter) {
+        counter.textContent = `${len}/${PROMPT_LIMIT}`;
+        counter.className = `text-[11px] tabular-nums ${len > 400 ? 'text-amber-600' : 'text-stone-400'}`;
+      }
+      const intentId = textarea.dataset.intentId;
+      const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
+      if (intent) intent.action.prompt = textarea.value;
+      markDirty();
+    }
+
+    // Close menu on outside-click (single listener, not re-bound)
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('action-dropdown-menu');
+      const trigger = document.getElementById('action-dropdown-trigger');
+      if (!menu || menu.classList.contains('hidden')) return;
+      if (menu.contains(e.target) || trigger?.contains(e.target)) return;
+      menu.classList.add('hidden');
+    });
+
+    // ============================================================
+    // Draft / published state
+    // ============================================================
+    let isDirty = false;
+
+    function markDirty() {
+      if (isDirty) return;
+      isDirty = true;
+      const pill = document.getElementById('draft-pill');
+      if (pill) pill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Unsaved changes';
+      const btn = document.getElementById('publish-btn');
+      if (btn) {
+        btn.disabled = false;
+        btn.className = 'text-sm bg-stone-900 text-white px-3 py-1.5 rounded-md hover:bg-stone-800';
+      }
+    }
+
+    function markPublished() {
+      isDirty = false;
+      const pill = document.getElementById('draft-pill');
+      if (pill) pill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> All published';
+      const btn = document.getElementById('publish-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.className = 'text-sm bg-stone-200 text-stone-400 px-3 py-1.5 rounded-md cursor-not-allowed';
+      }
+    }
+
+    document.getElementById('panel-save').addEventListener('click', () => {
+      markDirty();
+      closePanel();
+    });
+    const publishBtn = document.getElementById('publish-btn');
+    if (publishBtn) publishBtn.addEventListener('click', () => { if (!publishBtn.disabled) markPublished(); });
+
+    function freshActionDefaults(type, prev = {}) {
+      const base = { type };
+      if (type === 'transfer') return { ...base, targets: prev.targets || (prev.target ? [prev.target] : ['(415) 555-0000']) };
+      if (type === 'message')  return {
+        ...base,
+        collect: prev.collect || [
+          { key: 'caller_name',     required: true  },
+          { key: 'callback_number', required: true  },
+          { key: 'reason_brief',    required: false },
+        ],
+        prompt: prev.prompt || '',
+        inbox:  prev.inbox  || 'front_desk',
+      };
+      if (type === 'schedule') return { ...base, capabilities: prev.capabilities || ['book', 'reschedule'] };
+      return base;
+    }
+
+    document.getElementById('panel-close').addEventListener('click', closePanel);
+    document.getElementById('panel-cancel').addEventListener('click', closePanel);
+    function closePanel() {
+      $sidePanel.classList.add('hidden');
+      document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('selected'));
+    }
+
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.mode-tab').forEach(t => {
+          t.classList.remove('bg-white', 'text-stone-900', 'shadow-sm');
+          t.classList.add('text-stone-600');
+        });
+        tab.classList.remove('text-stone-600');
+        tab.classList.add('bg-white', 'text-stone-900', 'shadow-sm');
+        activeMode = tab.dataset.mode;
+        closePanel();
+        render();
+      });
+    });
+
+    const $drawer = document.getElementById('test-drawer');
+    const $drawerIcon = document.getElementById('test-toggle-icon');
+
+    // ============================================================
+    // Real-LLM test drawer — uses the backend /api/chat endpoint
+    // which composes the actual production system prompt + this
+    // intent's structured fields + rider, then calls Claude.
+    // ============================================================
+    const testState = {
+      intentId: null,
+      messages: [],
+    };
+
+    function currentTestIntent() {
+      return FLOWS[activeMode].intents.find(i => i.id === testState.intentId);
+    }
+
+    function renderIntentPicker() {
+      const $picker = document.getElementById('test-intent-picker');
+      $picker.innerHTML = FLOWS[activeMode].intents.map(i => `
+        <button data-intent-id="${i.id}" class="test-intent-btn w-full text-left px-2.5 py-1.5 rounded text-sm flex items-center gap-2 ${i.id === testState.intentId ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-700'}">
+          <span class="w-1.5 h-1.5 rounded-full ${i.id === testState.intentId ? 'bg-white' : (i.custom ? 'bg-purple-500' : 'bg-stone-400')}"></span>
+          <span class="truncate">${i.name}</span>
+        </button>
+      `).join('');
+      $picker.querySelectorAll('.test-intent-btn').forEach(b => {
+        b.addEventListener('click', () => {
+          testState.intentId = b.dataset.intentId;
+          renderIntentPicker();
+          resetTestConversation();
+        });
+      });
+    }
+
+    function resetTestConversation() {
+      testState.messages = [];
+      const intent = currentTestIntent();
+      document.getElementById('test-transcript').innerHTML = intent
+        ? `<div class="text-xs text-stone-400 italic">Testing <strong>${intent.name}</strong> (${intent.action.type}). Type as the caller below. Sage's response uses the real production system prompt + your draft config.</div>`
+        : '';
+    }
+
+    function appendTestMessage(role, content, opts) {
+      opts = opts || {};
+      const $t = document.getElementById('test-transcript');
+      const wrapper = document.createElement('div');
+      wrapper.className = role === 'user' ? 'flex justify-end' : 'flex justify-start';
+      const bubble = document.createElement('div');
+      bubble.className = role === 'user'
+        ? 'bg-stone-900 text-white text-sm px-3 py-2 rounded-2xl rounded-tr-sm max-w-md whitespace-pre-wrap'
+        : 'bg-stone-100 text-stone-900 text-sm px-3 py-2 rounded-2xl rounded-tl-sm max-w-md whitespace-pre-wrap';
+      bubble.textContent = content;
+      if (opts.thinking) bubble.classList.add('italic', 'text-stone-500');
+      wrapper.appendChild(bubble);
+      $t.appendChild(wrapper);
+      $t.scrollTop = $t.scrollHeight;
+      return wrapper;
+    }
+
+    document.getElementById('test-input-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const intent = currentTestIntent();
+      if (!intent) return;
+      const input = document.getElementById('test-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      input.disabled = true;
+
+      testState.messages.push({ role: 'user', content: text });
+      appendTestMessage('user', text);
+      const thinkingEl = appendTestMessage('assistant', 'Sage is thinking…', { thinking: true });
+
+      try {
+        const resp = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            intent,
+            messages: testState.messages,
+            fieldLibrary: FIELD_LIBRARY,
+          }),
+        });
+        const data = await resp.json();
+        thinkingEl.remove();
+        if (data.error) {
+          appendTestMessage('assistant', 'Error: ' + data.error);
+        } else {
+          testState.messages.push({ role: 'assistant', content: data.reply });
+          appendTestMessage('assistant', data.reply);
+        }
+      } catch (err) {
+        thinkingEl.remove();
+        appendTestMessage('assistant', 'Network error: ' + err.message);
+      } finally {
+        input.disabled = false;
+        input.focus();
+      }
+    });
+
+    document.getElementById('test-reset').addEventListener('click', () => {
+      resetTestConversation();
+    });
+
+    document.getElementById('test-show-prompt').addEventListener('click', async () => {
+      const intent = currentTestIntent();
+      if (!intent) return;
+      try {
+        const resp = await fetch('/api/compose', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ intent, fieldLibrary: FIELD_LIBRARY }),
+        });
+        const data = await resp.json();
+        const overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-8';
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+        const box = document.createElement('div');
+        box.className = 'bg-white rounded-xl w-full max-w-3xl flex flex-col';
+        box.style.height = '85vh';
+        box.innerHTML = `
+          <div class="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+            <div>
+              <div class="text-sm font-medium text-stone-900">Composed system prompt</div>
+              <div class="text-xs text-stone-500 mt-0.5">Real production template + per-intent overlay for "${intent.name}"</div>
+            </div>
+            <button class="text-stone-400 hover:text-stone-900 text-xl leading-none" aria-label="Close">×</button>
+          </div>
+          <pre class="flex-1 overflow-auto p-4 text-xs whitespace-pre-wrap" style="font-family:'JetBrains Mono',ui-monospace,monospace"></pre>
+        `;
+        box.querySelector('button').addEventListener('click', () => overlay.remove());
+        box.querySelector('pre').textContent = data.prompt || data.error || '(no prompt)';
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+      } catch (err) {
+        alert('Failed to load prompt: ' + err.message);
+      }
+    });
+
+    document.getElementById('test-toggle').addEventListener('click', () => {
+      const wasCollapsed = $drawer.classList.contains('collapsed');
+      if (wasCollapsed) {
+        openTestDrawer();
+      } else {
+        $drawer.classList.add('collapsed');
+        $drawerIcon.textContent = '▴';
+      }
+    });
+
+    function openTestDrawer(intentId) {
+      const allIntents = FLOWS[activeMode].intents;
+      // Pick: provided id → currently-open side-panel intent → first
+      const sidePanelSelected = document.querySelector('.flow-node.selected[data-node-id^="intent-"], .flow-node.selected[data-node-id^="action-"]');
+      const selectedId = sidePanelSelected ? sidePanelSelected.dataset.nodeId.replace(/^(intent|action)-/, '') : null;
+      const candidate = intentId || selectedId || (allIntents[0] && allIntents[0].id);
+      if (!allIntents.find(i => i.id === candidate)) {
+        testState.intentId = allIntents[0] ? allIntents[0].id : null;
+      } else {
+        testState.intentId = candidate;
+      }
+      renderIntentPicker();
+      resetTestConversation();
+      $drawer.classList.remove('collapsed');
+      $drawerIcon.textContent = '▾';
+      setTimeout(() => document.getElementById('test-input').focus(), 100);
+    }
+
+    document.getElementById('open-test').addEventListener('click', () => openTestDrawer());
+
+    render();
+
+    // ============================================================
+    // Canvas zoom & pan (Figma-style)
+    // ============================================================
+    const $viewport = document.getElementById('canvas-viewport');
+    const $transform = document.getElementById('canvas-transform');
+    const $zoomPct = document.getElementById('zoom-pct');
+    let zoom = 1;
+    let panX = 0;
+    let panY = 0;
+    const ZOOM_MIN = 0.25;
+    const ZOOM_MAX = 2;
+
+    function applyTransform() {
+      $transform.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+      $zoomPct.textContent = `${Math.round(zoom * 100)}%`;
+    }
+
+    // Wheel: pan by default; zoom when cmd/ctrl held (or trackpad pinch which sends ctrlKey)
+    $viewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      if (e.ctrlKey || e.metaKey) {
+        const rect = $viewport.getBoundingClientRect();
+        const cx = e.clientX - rect.left;
+        const cy = e.clientY - rect.top;
+        const oldZoom = zoom;
+        const delta = -e.deltaY * 0.01;
+        zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom * (1 + delta)));
+        const k = zoom / oldZoom;
+        panX = cx - (cx - panX) * k;
+        panY = cy - (cy - panY) * k;
+      } else {
+        panX -= e.deltaX;
+        panY -= e.deltaY;
+      }
+      applyTransform();
+    }, { passive: false });
+
+    // Drag on empty canvas to pan
+    let isDragging = false;
+    let lastX = 0, lastY = 0;
+    $viewport.addEventListener('mousedown', (e) => {
+      // Bail if clicking on a node, button, or any UI chrome
+      if (e.target.closest('.flow-node') || e.target.closest('button') || e.target.closest('#side-panel') || e.target.closest('#test-drawer') || e.target.closest('#add-intent-dropdown')) return;
+      isDragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      $viewport.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      panX += e.clientX - lastX;
+      panY += e.clientY - lastY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      applyTransform();
+    });
+    window.addEventListener('mouseup', () => {
+      if (isDragging) { isDragging = false; $viewport.style.cursor = ''; }
+    });
+
+    function zoomBy(factor) {
+      const rect = $viewport.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const oldZoom = zoom;
+      zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom * factor));
+      const k = zoom / oldZoom;
+      panX = cx - (cx - panX) * k;
+      panY = cy - (cy - panY) * k;
+      applyTransform();
+    }
+
+    document.getElementById('zoom-in').addEventListener('click', () => zoomBy(1.2));
+    document.getElementById('zoom-out').addEventListener('click', () => zoomBy(1 / 1.2));
+    document.getElementById('zoom-reset').addEventListener('click', () => {
+      zoom = 1; panX = 0; panY = 0;
+      applyTransform();
+    });
+
+    // ============================================================
+    // Draft / Publish state for free-text prompts
+    // ============================================================
+
+    // Initialize the published baseline so we can detect edits.
+    Object.values(FLOWS).forEach(flow => {
+      flow.intents.forEach(intent => {
+        if (intent.action.type === 'message') {
+          intent.action._publishedPrompt = intent.action.prompt || '';
+        }
+      });
+    });
+
+    function isIntentDraft(intent) {
+      const a = intent.action;
+      if (a.type !== 'message') return false;
+      return a._publishedPrompt !== undefined && a.prompt !== a._publishedPrompt;
+    }
+
+    function countDrafts() {
+      let count = 0;
+      Object.values(FLOWS).forEach(flow => {
+        flow.intents.forEach(intent => { if (isIntentDraft(intent)) count++; });
+      });
+      return count;
+    }
+
+    function updateDraftState() {
+      const count = countDrafts();
+      const pill = document.getElementById('draft-pill');
+      const btn  = document.getElementById('publish-btn');
+      if (!pill || !btn) return;
+      if (count === 0) {
+        pill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>All published';
+        pill.className = 'text-xs text-stone-500 flex items-center gap-1.5';
+        btn.disabled = true;
+        btn.className = 'text-sm bg-stone-200 text-stone-400 px-3 py-1.5 rounded-md cursor-not-allowed';
+        btn.textContent = 'Publish';
+      } else {
+        pill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>${count} unpublished change${count === 1 ? '' : 's'}`;
+        pill.className = 'text-xs text-amber-700 flex items-center gap-1.5';
+        btn.disabled = false;
+        btn.className = 'text-sm bg-stone-900 text-white px-3 py-1.5 rounded-md hover:bg-stone-800';
+        btn.textContent = `Publish ${count}`;
+      }
+    }
+
+    function handlePromptInput(textarea) {
+      const intentId = textarea.dataset.intentId;
+      const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
+      if (!intent) return;
+      intent.action.prompt = textarea.value;
+      // counter
+      const counter = document.getElementById('prompt-counter');
+      if (counter) {
+        const len = textarea.value.length;
+        counter.textContent = `${len}/${PROMPT_LIMIT}`;
+        counter.className = `text-[11px] tabular-nums ${len > 400 ? 'text-amber-600' : 'text-stone-400'}`;
+      }
+      // draft pill
+      updateDraftState();
+      // inline preview removed
+    }
+
+    function renderDraftPreview(intent) {
+      if (!isIntentDraft(intent)) return '';
+      const a = intent.action;
+      const before = a._publishedPrompt || '';
+      const after  = a.prompt || '';
+      return `
+        <div class="p-4 bg-stone-900 text-stone-100 rounded-xl">
+          <div class="flex items-baseline justify-between mb-3">
+            <div class="text-xs font-medium text-emerald-300 uppercase tracking-widest">Preview · what will change</div>
+            <span class="text-[10px] text-stone-400">draft</span>
+          </div>
+          <div class="space-y-3 text-sm">
+            <div>
+              <div class="text-[10px] uppercase tracking-wider text-stone-500 mb-1">Inbox (won't change)</div>
+              <div class="text-stone-300">${a.inbox}</div>
+            </div>
+            <div>
+              <div class="text-[10px] uppercase tracking-wider text-stone-500 mb-1">Live now (published)</div>
+              <div class="text-stone-300 italic">"${(before || '—').slice(0, 200)}${before.length > 200 ? '…' : ''}"</div>
+            </div>
+            <div>
+              <div class="text-[10px] uppercase tracking-wider text-emerald-300 mb-1">After publish (your draft)</div>
+              <div class="text-white italic">"${(after || '—').slice(0, 200)}${after.length > 200 ? '…' : ''}"</div>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-stone-700 flex items-center justify-between">
+            <span class="text-[11px] text-stone-400">Goes live for incoming calls after you Publish.</span>
+            <button id="preview-test-btn" class="text-xs px-2.5 py-1 bg-stone-700 text-white rounded hover:bg-stone-600">Run a test call →</button>
+          </div>
+        </div>`;
+    }
+
+    function publishAll() {
+      Object.values(FLOWS).forEach(flow => {
+        flow.intents.forEach(intent => {
+          if (intent.action.type === 'message') {
+            intent.action._publishedPrompt = intent.action.prompt;
+          }
+        });
+      });
+      updateDraftState();
+      // re-render any open panel so the "unpublished" badge clears + preview closes
+      const open = document.querySelector('.flow-node.selected[data-node-id^="intent-"], .flow-node.selected[data-node-id^="action-"]');
+      if (open) {
+        const id = open.dataset.nodeId.replace(/^(intent|action)-/, '');
+        const intent = FLOWS[activeMode].intents.find(i => i.id === id);
+        if (intent) {
+          $panelBody.innerHTML = renderIntentBody(intent);
+          wirePanelInteractions(intent);
+        }
+      }
+    }
+
+    document.getElementById('publish-btn').addEventListener('click', () => {
+      if (countDrafts() === 0) return;
+      publishAll();
+    });
+
+    // Hook test-call button inside the inline preview (event-delegated since it's re-rendered)
+    document.getElementById('side-panel').addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'preview-test-btn') {
+        $drawer.classList.remove('collapsed');
+        $drawerIcon.textContent = '▾';
+      }
+    });
+
+    updateDraftState();
+  </script>
+
+</body>
+</html>
