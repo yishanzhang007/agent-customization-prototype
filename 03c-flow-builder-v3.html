@@ -130,7 +130,7 @@
   <script>
     const ACTION_KINDS = {
       transfer: { label: 'Transfer to a person', desc: 'Hand the caller to a phone number',  icon: '📞' },
-      message:  { label: 'Take a message',       desc: 'Agent gathers info, drops in inbox', icon: '📝' },
+      message:  { label: 'Take details',          desc: 'Sage captures the caller’s request and routes to the right inbox', icon: '📝' },
       schedule: { label: 'Schedule appointment', desc: 'Book directly into the EHR',         icon: '📅', requiresEhr: true },
     };
 
@@ -210,11 +210,11 @@
         label: "After hours · Mon–Fri after 5pm + weekends",
         intents: [
           { id: 'urgent',     name: 'Urgent',     examples: ['this is urgent', "I'm having chest pain", 'I need help right now'], action: { type: 'transfer', targets: ['(415) 555-0911', '(415) 555-0912'] } },
-          { id: 'scheduling', name: 'Scheduling', examples: ['I need to book an appointment'], action: { type: 'message', prompt: 'Take a message — scheduling will call back in the morning.', inbox: 'front_desk' }, overridden: true },
+          { id: 'scheduling', name: 'Scheduling', examples: ['I need to book an appointment'], action: { type: 'message', prompt: 'Note down what the caller wants to schedule — scheduling will call back in the morning.', inbox: 'front_desk' }, overridden: true },
           { id: 'medication', name: 'Medication', examples: ['I need a refill on my blood-pressure med'], action: { type: 'message', prompt: 'Take down name, DOB, medication, and pharmacy. Refill queue handles in the morning.', inbox: 'front_desk' }, overridden: true },
           { id: 'billing',    name: 'Billing',    examples: ["I got a bill I don't understand"], action: { type: 'message', prompt: 'Take down the caller name and callback number.', inbox: 'billing' } },
           { id: 'clinical',   name: 'Clinical',   examples: ['I want to talk to a nurse about my labs'], action: { type: 'transfer', targets: ['(415) 555-0911'] }, overridden: true },
-          { id: 'general',    name: 'General',    examples: ['Can I speak to someone?'], action: { type: 'message', prompt: 'Take a message — someone will follow up in the morning.', inbox: 'front_desk' } },
+          { id: 'general',    name: 'General',    examples: ['Can I speak to someone?'], action: { type: 'message', prompt: 'Capture the caller name, callback number, and reason — someone will follow up in the morning.', inbox: 'front_desk' } },
         ],
       },
     };
@@ -243,6 +243,16 @@
         ? (welcomeState.customText || '(write your custom greeting)')
         : WELCOME_PRESETS[welcomeState.preset].text;
     }
+
+    // Seed each message action's _defaultPrompt so we can detect customization
+    // later (prompt !== _defaultPrompt → user touched it).
+    Object.values(FLOWS).forEach(flow => {
+      flow.intents.forEach(intent => {
+        if (intent.action.type === 'message') {
+          intent.action._defaultPrompt = intent.action.prompt || '';
+        }
+      });
+    });
 
     let activeMode = 'business';
 
@@ -351,12 +361,18 @@
         ? `Transfer<div class="text-xs text-stone-500 mt-0.5">No number set</div>`
         : `Transfer to<div class="mt-1 space-y-0.5 text-xs text-stone-700 font-mono">${visibleTargets.map(t => `<div class="truncate">${t}</div>`).join('')}</div>${overflow > 0 ? `<div class="text-xs text-stone-500 mt-0.5 flex items-center gap-1"><span>+${overflow} more</span><span class="text-stone-400">▾</span></div>` : ''}`;
       const detailLine = a.type === 'transfer' ? transferDetail
-                       : a.type === 'message'  ? `Take a message<div class="text-xs text-stone-500 mt-0.5">→ ${inboxLabel(a.inbox)}</div>`
+                       : a.type === 'message'  ? `${ACTION_KINDS.message.label}<div class="text-xs text-stone-500 mt-0.5">→ ${inboxLabel(a.inbox)}</div>`
                        : a.type === 'schedule' ? `Schedule in EHR<div class="text-xs text-stone-500 mt-0.5">${((a.capabilities || []).map(c => ({ book:'Book', reschedule:'Reschedule', cancel:'Cancel' })[c]).filter(Boolean).join(' · ')) || 'No actions enabled'}</div>`
                        : '';
       const overrideTag = intent.overridden ? `<div class="absolute -top-2 -right-2 text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded border border-amber-200">override</div>` : '';
+      // Option D — background tint when the action has custom instructions
+      // (only message actions carry a free-text prompt today)
+      const isCustomized = a.type === 'message' && a.prompt && a.prompt !== a._defaultPrompt;
+      const cardClasses = isCustomized
+        ? 'bg-amber-50/40 border border-amber-100'
+        : 'bg-white border border-stone-200';
       el.innerHTML = `
-        <div class="relative w-52 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+        <div class="relative w-52 ${cardClasses} rounded-xl p-3 shadow-sm">
           ${overrideTag}
           <div class="text-sm text-stone-900">${detailLine}</div>
         </div>`;
