@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Editable vs system nodes — wireframes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .canvas-bg {
+      background-image: radial-gradient(circle, #e7e5e4 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+    /* Hover affordance variants */
+    .hover-lift { transition: transform 0.12s, box-shadow 0.12s; cursor: pointer; }
+    .hover-lift:hover { transform: translateY(-1px); box-shadow: 0 8px 24px -8px rgba(0,0,0,0.12); }
+
+    .hover-pencil .pencil { opacity: 0; transition: opacity 0.15s; }
+    .hover-pencil:hover .pencil { opacity: 1; }
+
+    .system-static { cursor: default; }
+    .glass {
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+  </style>
+</head>
+<body class="bg-stone-50 min-h-screen pb-20">
+
+  <div class="h-14 bg-white border-b border-stone-200 flex items-center px-6">
+    <a href="index.html" class="text-sm text-stone-500 hover:text-stone-900">← Gallery</a>
+    <div class="h-4 w-px bg-stone-200 mx-3"></div>
+    <div class="text-sm font-medium text-stone-900">Wireframes</div>
+    <span class="text-stone-300 mx-2">/</span>
+    <div class="text-sm text-stone-500">Editable vs system nodes</div>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-8 py-14">
+    <div class="max-w-2xl">
+      <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Action vs scaffolding</div>
+      <h1 class="text-3xl font-semibold text-stone-900 mt-2 tracking-tight">Signaling what's editable</h1>
+      <p class="text-stone-600 mt-3 leading-relaxed">
+        On the canvas, some nodes are clinic-editable (intents, actions) and some are platform scaffolding (incoming call, classify intent). Today they all look identical, so clicking around to discover what's clickable is the only way to learn. Below are six UX directions for making the distinction visual.
+      </p>
+      <p class="text-xs text-stone-500 mt-3">
+        <strong>Editable:</strong> Welcome message, intent cards, action cards. <strong>System:</strong> Incoming call (the start), Classify intent (the router). Both kinds always render — they just respond differently to interaction.
+      </p>
+    </div>
+
+    <!-- Baseline -->
+    <div class="mt-12 p-6 bg-white border border-stone-200 rounded-2xl">
+      <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Baseline (today)</div>
+      <p class="text-xs text-stone-500 mt-1">Identical treatment — no visual cue distinguishes the two.</p>
+      <div class="mt-5 canvas-bg p-8 rounded-xl flex items-center gap-6">
+        ${nodeSystemBaseline('Incoming call', 'Business hours · Mon–Fri 9–5')}
+        ${nodeSystemBaseline('Classify intent', '5 intents')}
+        ${nodeEditableBaseline('Take details', '→ Clinical team')}
+      </div>
+    </div>
+
+    <!-- Variants -->
+    <div class="mt-10 grid grid-cols-2 gap-6">
+
+      <!-- A — Filled vs ghost -->
+      <div class="p-6 bg-white border border-stone-200 rounded-2xl">
+        <div class="flex items-baseline justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Option A</div>
+            <h2 class="text-lg font-semibold text-stone-900 mt-1">Filled vs ghost</h2>
+          </div>
+          <span class="text-xs px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded">strong contrast</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">System nodes lose their fill — outline only, transparent background. They blend with the canvas and read as "structure."</p>
+        <div class="mt-5 canvas-bg p-6 rounded-xl flex items-center gap-4">
+          ${nodeGhost('Incoming call', 'Business hours · Mon–Fri 9–5')}
+          ${nodeGhost('Classify intent', '5 intents')}
+          ${nodeEditable('Take details', '→ Clinical team')}
+        </div>
+        <p class="text-[11px] text-stone-500 mt-3">+ unmissable distinction · − ghost cards can feel "disabled" or "incomplete"</p>
+      </div>
+
+      <!-- B — Hover lift only on editable -->
+      <div class="p-6 bg-white border border-stone-200 rounded-2xl">
+        <div class="flex items-baseline justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Option B</div>
+            <h2 class="text-lg font-semibold text-stone-900 mt-1">Hover affordance only</h2>
+          </div>
+          <span class="text-xs px-1.5 py-0.5 bg-stone-100 text-stone-700 rounded">subtle</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">Identical at rest. Hover the editable nodes → they lift + show pencil + cursor:pointer. System nodes have cursor:default and don't react.</p>
+        <div class="mt-5 canvas-bg p-6 rounded-xl flex items-center gap-4">
+          ${nodeStatic('Incoming call', 'Business hours · Mon–Fri 9–5')}
+          ${nodeStatic('Classify intent', '5 intents')}
+          ${nodeHoverPencil('Take details', '→ Clinical team')}
+        </div>
+        <p class="text-[11px] text-stone-500 mt-3">+ no visual noise at rest · − discoverability is poor — you have to hover to learn</p>
+      </div>
+
+      <!-- C — Dashed border for system -->
+      <div class="p-6 bg-white border border-stone-200 rounded-2xl">
+        <div class="flex items-baseline justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Option C</div>
+            <h2 class="text-lg font-semibold text-stone-900 mt-1">Dashed border for system</h2>
+          </div>
+          <span class="text-xs px-1.5 py-0.5 bg-stone-100 text-stone-700 rounded">peripheral</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">System nodes get a dashed border, mirroring the "+ Add intent" empty-state pattern already used to indicate "this is structural, not your content."</p>
+        <div class="mt-5 canvas-bg p-6 rounded-xl flex items-center gap-4">
+          ${nodeDashed('Incoming call', 'Business hours · Mon–Fri 9–5')}
+          ${nodeDashed('Classify intent', '5 intents')}
+          ${nodeEditable('Take details', '→ Clinical team')}
+        </div>
+        <p class="text-[11px] text-stone-500 mt-3">+ subtle, reuses existing dashed-border vocabulary · − conflicts with the dashed "add intent" button</p>
+      </div>
+
+      <!-- D — Glass / translucent -->
+      <div class="p-6 bg-white border border-stone-200 rounded-2xl">
+        <div class="flex items-baseline justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Option D</div>
+            <h2 class="text-lg font-semibold text-stone-900 mt-1">Glass / translucent</h2>
+          </div>
+          <span class="text-xs px-1.5 py-0.5 bg-stone-100 text-stone-700 rounded">ambient</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">System nodes are semi-transparent with a slight blur — like a watermark. Editable cards "pop" against them as the real content.</p>
+        <div class="mt-5 canvas-bg p-6 rounded-xl flex items-center gap-4">
+          ${nodeGlass('Incoming call', 'Business hours · Mon–Fri 9–5')}
+          ${nodeGlass('Classify intent', '5 intents')}
+          ${nodeEditable('Take details', '→ Clinical team')}
+        </div>
+        <p class="text-[11px] text-stone-500 mt-3">+ feels modern, layered · − contrast issues on textured backgrounds</p>
+      </div>
+
+      <!-- E — Pill shape for system -->
+      <div class="p-6 bg-white border border-stone-200 rounded-2xl">
+        <div class="flex items-baseline justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Option E</div>
+            <h2 class="text-lg font-semibold text-stone-900 mt-1">Different shape</h2>
+          </div>
+          <span class="text-xs px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded">strong distinction</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">System nodes become pills/chips — smaller, rounder, single-line. Editable nodes stay as cards. Shape = role.</p>
+        <div class="mt-5 canvas-bg p-6 rounded-xl flex items-center gap-4">
+          ${nodePill('Incoming call · Business hours')}
+          ${nodePill('Classify intent · 5')}
+          ${nodeEditable('Take details', '→ Clinical team')}
+        </div>
+        <p class="text-[11px] text-stone-500 mt-3">+ truly different shape signals truly different role · − requires re-laying out mode info that the start node currently shows</p>
+      </div>
+
+      <!-- F — Lock icon -->
+      <div class="p-6 bg-white border border-stone-200 rounded-2xl">
+        <div class="flex items-baseline justify-between">
+          <div>
+            <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Option F</div>
+            <h2 class="text-lg font-semibold text-stone-900 mt-1">Lock icon on system</h2>
+          </div>
+          <span class="text-xs px-1.5 py-0.5 bg-stone-100 text-stone-700 rounded">explicit</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">Small 🔒 (or "Managed") icon top-right on system nodes. Reads like file-permissions UI — instantly understood as "you can't touch this."</p>
+        <div class="mt-5 canvas-bg p-6 rounded-xl flex items-center gap-4">
+          ${nodeLocked('Incoming call', 'Business hours · Mon–Fri 9–5')}
+          ${nodeLocked('Classify intent', '5 intents')}
+          ${nodeEditable('Take details', '→ Clinical team')}
+        </div>
+        <p class="text-[11px] text-stone-500 mt-3">+ semantically clear · − adds a tiny icon that competes for attention with the override badge / custom indicators</p>
+      </div>
+
+    </div>
+
+    <!-- Combo recommendation -->
+    <div class="mt-10 p-7 bg-stone-900 text-stone-100 rounded-2xl">
+      <div class="text-xs font-medium text-emerald-300 uppercase tracking-widest">Recommended combo</div>
+      <h2 class="text-xl font-semibold text-white mt-2">Glass (D) + Hover affordance (B)</h2>
+      <p class="text-sm text-stone-300 mt-2 max-w-2xl leading-relaxed">
+        System nodes go translucent (D) — at rest, they read as scaffolding without screaming "disabled." Editable nodes keep the white card + lift on hover (B), so the interactive zone is unmistakable when you mouse over. Cursor stays default on system nodes; pointer on editable. Together: clear at-a-glance role, intuitive on interaction.
+      </p>
+      <div class="mt-5 canvas-bg p-6 rounded-xl flex items-center gap-4">
+        ${nodeGlass('Incoming call', 'Business hours · Mon–Fri 9–5')}
+        ${nodeGlass('Classify intent', '5 intents')}
+        ${nodeHoverPencil('Take details', '→ Clinical team')}
+      </div>
+      <p class="text-[11px] text-stone-400 mt-3">Try mousing over the cards above.</p>
+    </div>
+
+    <!-- Notes -->
+    <div class="mt-10 p-6 bg-stone-100/60 border border-stone-200 rounded-2xl">
+      <div class="text-xs font-medium text-stone-500 uppercase tracking-widest">Things to decide</div>
+      <ul class="text-sm text-stone-700 mt-3 space-y-2 list-disc pl-5 leading-relaxed">
+        <li><strong>Welcome message</strong> is currently editable (you can change the opening line). Treat it as editable, not system.</li>
+        <li><strong>Classify node</strong> has some configurable bits (classifier mode, fallback). It's a borderline case — could be treated as system (immutable structure) or as editable with a "settings" affordance.</li>
+        <li><strong>Cursor matters more than visual.</strong> Whatever direction we pick, `cursor: default` on system nodes will already prevent the click-and-see-nothing-happens frustration.</li>
+        <li><strong>Hover affordance is necessary regardless</strong> — even with strong rest-state differentiation, hovering an editable card should still confirm "yes you can click me" via lift + cursor change.</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <script>
+    // Inline component substitution — same trick as the customization-indicators page
+    document.body.innerHTML = document.body.innerHTML.replace(/\$\{(\w+)\(([^)]*)\)\}/g, (match, fn, args) => {
+      const fns = { nodeSystemBaseline, nodeEditableBaseline, nodeGhost, nodeStatic, nodeHoverPencil, nodeDashed, nodeGlass, nodePill, nodeLocked, nodeEditable };
+      const parsed = args.split(',').map(a => a.trim().replace(/^['"]|['"]$/g, ''));
+      return fns[fn] ? fns[fn](...parsed) : match;
+    });
+
+    function pencil() { return '<span class="pencil absolute top-2 right-2 text-stone-400 text-xs">✎</span>'; }
+    function lock()   { return '<span class="absolute top-2 right-2 text-stone-300 text-[11px]">🔒</span>'; }
+
+    function nodeSystemBaseline(title, sub) {
+      return `<div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+        <div class="text-sm font-medium text-stone-900">${title}</div>
+        <div class="text-xs text-stone-500 mt-0.5">${sub}</div>
+      </div>`;
+    }
+    function nodeEditableBaseline(title, sub) {
+      return `<div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
+        <div class="text-sm text-stone-900">${title}</div>
+        <div class="text-xs text-stone-500 mt-0.5">${sub}</div>
+      </div>`;
+    }
+    function nodeEditable(title, sub) {
+      return `<div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm hover-lift">
+        <div class="text-sm text-stone-900">${title}</div>
+        <div class="text-xs text-stone-500 mt-0.5">${sub}</div>
+      </div>`;
+    }
+    function nodeGhost(title, sub) {
+      return `<div class="w-44 border border-stone-300 rounded-xl p-3 system-static" style="background: transparent">
+        <div class="text-sm font-medium text-stone-700">${title}</div>
+        <div class="text-xs text-stone-500 mt-0.5">${sub}</div>
+      </div>`;
+    }
+    function nodeStatic(title, sub) {
+      return `<div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm system-static">
+        <div class="text-sm font-medium text-stone-900">${title}</div>
+        <div class="text-xs text-stone-500 mt-0.5">${sub}</div>
+      </div>`;
+    }
+    function nodeHoverPencil(title, sub) {
+      return `<div class="relative w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm hover-lift hover-pencil">
+        ${pencil()}
+        <div class="text-sm text-stone-900">${title}</div>
+        <div class="text-xs text-stone-500 mt-0.5">${sub}</div>
+      </div>`;
+    }
+    function nodeDashed(title, sub) {
+      return `<div class="w-44 bg-white border border-dashed border-stone-300 rounded-xl p-3 system-static">
+        <div class="text-sm font-medium text-stone-700">${title}</div>
+        <div class="text-xs text-stone-500 mt-0.5">${sub}</div>
+      </div>`;
+    }
+    function nodeGlass(title, sub) {
+      return `<div class="w-44 glass border border-stone-200/60 rounded-xl p-3 system-static">
+        <div class="text-sm font-medium text-stone-600">${title}</div>
+        <div class="text-xs text-stone-500 mt-0.5">${sub}</div>
+      </div>`;
+    }
+    function nodePill(content) {
+      return `<div class="px-4 py-2 bg-stone-100 border border-stone-200 rounded-full system-static">
+        <span class="text-xs font-medium text-stone-700">${content}</span>
+      </div>`;
+    }
+    function nodeLocked(title, sub) {
+      return `<div class="relative w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm system-static">
+        ${lock()}
+        <div class="text-sm font-medium text-stone-900">${title}</div>
+        <div class="text-xs text-stone-500 mt-0.5">${sub}</div>
+      </div>`;
+    }
+  </script>
+
+</body>
+</html>
