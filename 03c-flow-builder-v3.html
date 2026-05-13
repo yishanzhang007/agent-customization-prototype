@@ -38,6 +38,7 @@
       <span class="text-stone-300">/</span>
       <div class="text-sm text-stone-500">Conversation flow</div>
       <span class="text-xs px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded ml-2 border border-emerald-200">v3 · conditional editor</span>
+      <button onclick="resetToDefaults()" class="text-[11px] text-stone-400 hover:text-red-600 ml-2" title="Clear local customizations and reload seed data">Reset</button>
     </div>
     <div class="flex items-center gap-3">
       <div id="mode-tabs" class="flex items-center gap-1 bg-stone-100 rounded-md p-0.5">
@@ -239,14 +240,61 @@
     }
 
     // Seed each message action's _defaultPrompt so we can detect customization
-    // later (prompt !== _defaultPrompt → user touched it).
+    // later (prompt !== _defaultPrompt → user touched it). Only set if missing
+    // (so a hydrated state from localStorage keeps its original default).
     Object.values(FLOWS).forEach(flow => {
       flow.intents.forEach(intent => {
-        if (intent.action.type === 'message') {
+        if (intent.action.type === 'message' && intent.action._defaultPrompt === undefined) {
           intent.action._defaultPrompt = intent.action.prompt || '';
         }
       });
     });
+
+    // ============================================================
+    // Local persistence — survives page refresh
+    // ============================================================
+    const STORAGE_KEY = 'agent-cust-v3-state-v1';
+
+    // Hydrate from localStorage if present. Done BEFORE _defaultPrompt seeding
+    // would normally run, but since we made seeding idempotent it's fine here.
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved?.flows) {
+          Object.keys(saved.flows).forEach(mode => {
+            if (FLOWS[mode]) FLOWS[mode] = saved.flows[mode];
+          });
+        }
+        if (saved?.welcome != null) welcomeState.text = saved.welcome;
+      }
+    } catch (e) { console.warn('Failed to hydrate from localStorage:', e); }
+
+    // Re-seed _defaultPrompt for any message action missing it (e.g. new intents added after hydration)
+    Object.values(FLOWS).forEach(flow => {
+      flow.intents.forEach(intent => {
+        if (intent.action.type === 'message' && intent.action._defaultPrompt === undefined) {
+          intent.action._defaultPrompt = intent.action.prompt || '';
+        }
+      });
+    });
+
+    function persistFlows() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          flows: FLOWS,
+          welcome: welcomeState.text,
+          savedAt: Date.now(),
+        }));
+      } catch (e) { /* storage quota, private mode, etc. — swallow */ }
+    }
+
+    function resetToDefaults() {
+      if (!confirm('Reset all edits and reload the seed data? This clears any customizations you made.')) return;
+      try { localStorage.removeItem(STORAGE_KEY); } catch {}
+      location.reload();
+    }
+    window.resetToDefaults = resetToDefaults;
 
     let activeMode = 'business';
 
@@ -438,7 +486,10 @@
 
     function addNewIntent({ name, example }) {
       const id = `custom_${Date.now()}`;
-      FLOWS[activeMode].intents.push({ id, name, custom: true, examples: [example], action: { type: 'message', prompt: 'Take down their name, callback number, and the reason for their call.', inbox: 'front_desk' } });
+      const action = { type: 'message', prompt: 'Take down their name, callback number, and the reason for their call.', inbox: 'front_desk' };
+      action._defaultPrompt = action.prompt;
+      FLOWS[activeMode].intents.push({ id, name, custom: true, examples: [example], action });
+      markDirty();
       render();
       setTimeout(() => openIntentPanel(id), 50);
     }
@@ -946,6 +997,7 @@
     let isDirty = false;
 
     function markDirty() {
+      persistFlows(); // always persist — keeps localStorage in sync on every edit
       if (isDirty) return;
       isDirty = true;
       const pill = document.getElementById('draft-pill');
