@@ -6,17 +6,161 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    body { font-family: 'Inter', system-ui, sans-serif; }
+    :root {
+      /* Design tokens — pulled from Figma file SNFtqZ9mxLPdxL6ZtKVEWX */
+      --fg-primary: #21201d;
+      --fg-tertiary: #8e8c88;
+      --fg-disabled: #bcbbb7;
+      --fg-link: #1260c6;
+      --bg-surface-primary: #ffffff;
+      --bg-surface-secondary: #f8f8f7;
+      --bg-inverted: #32302c;
+      --fg-inverted: #fcfcfc;
+      --border-default: rgba(33, 32, 29, 0.2);
+      --border-header: rgba(33, 32, 29, 0.15);
+      --neutral-10: #82807c;
+      --muted: #8e8c88;
+      --font-stack: 'Denim-TRIAL', 'Inter', system-ui, sans-serif;
+    }
+    body { font-family: var(--font-stack); font-weight: 400; }
+    *, input, textarea, select, button { font-family: var(--font-stack); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    input, textarea, select { font-weight: 400; }
+    button { font-weight: 500; }
+    button * { font-weight: inherit; }
+    textarea::placeholder, input::placeholder { color: var(--muted); opacity: 1; }
+    textarea::-webkit-input-placeholder, input::-webkit-input-placeholder { color: var(--muted); opacity: 1; }
+    textarea::-moz-placeholder, input::-moz-placeholder { color: var(--muted); opacity: 1; }
     .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
     .scrollbar-thin::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 3px; }
-    .canvas-bg { background-image: radial-gradient(circle, #e7e5e4 1px, transparent 1px); background-size: 16px 16px; }
-    .flow-node { transition: all 0.15s; cursor: pointer; }
-    .flow-node:hover { transform: translateY(-1px); box-shadow: 0 8px 24px -8px rgba(0,0,0,0.12); }
-    .flow-node.selected { box-shadow: 0 0 0 2px #1c1917, 0 8px 24px -8px rgba(0,0,0,0.15); }
-    .flow-node.firing { animation: pulse 1.2s ease-in-out infinite; box-shadow: 0 0 0 3px #fbbf24, 0 8px 24px -8px rgba(0,0,0,0.2); }
+    .flow-node { cursor: pointer; }
+    .flow-node.firing .card-shell { animation: pulse 1.2s ease-in-out infinite; box-shadow: 0 0 0 3px #fbbf24, 0 8px 24px -8px rgba(0,0,0,0.2); }
     @keyframes pulse { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)} }
+
+    /* Card UI — matches Figma 6483-2594 */
+    .card-shell {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 16px 10px 12px;
+      width: 232px;
+      /* Use the same radius for default, hover, and selected so the corner doesn't morph mid-click. */
+      border-radius: 16px;
+      background: transparent;
+      position: relative;
+      box-shadow: 0 0 0 rgba(0,0,0,0);
+      /* Hover/color transition only — radius and padding are now constant across states. */
+      transition:
+        background-color 160ms ease,
+        box-shadow 160ms ease;
+    }
+    .card-shell.no-bg { background: transparent; }
+    .flow-node:hover .card-shell,
+    .card-shell.is-selected {
+      background: #ffffff;
+      box-shadow: 0 2px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .card-shell.is-selected .card-icon {
+      border-width: 1px;
+      border-color: currentColor;
+    }
+    /* Start (Incoming call) node — non-interactive, regular-weight title */
+    .start-node { cursor: default; }
+    .start-node:hover .card-shell { background: transparent !important; box-shadow: none !important; }
+    .card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 0.5px solid;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .card-icon svg { width: 18px; height: 18px; }
+    .card-text { display: flex; flex-direction: column; gap: 2px; justify-content: center; min-width: 0; }
+    .card-title {
+      font-size: 16px;
+      line-height: 20px;
+      color: #21201d;
+      font-weight: 400;
+      white-space: nowrap;
+    }
+    .card-title.title-accent-schedule { color: #2972c3; }
+    .card-title.title-accent-message  { color: #6a3cdf; }
+    .card-title.title-accent-transfer { color: #24a8a4; }
+    .card-subtitle {
+      font-size: 14px;
+      line-height: 18px;
+      color: #8e8c88;
+      white-space: nowrap;
+    }
+    .card-dot {
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #177E1D;
+      top: 8px;
+      left: 43px;
+      box-shadow: 0 0 0 2px white;
+    }
+    /* Add-intent button — same card-shell hover treatment, but visually distinct (dashed icon) */
+    .add-intent-trigger {
+      display: block;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      text-align: left;
+      font-family: inherit;
+      cursor: pointer;
+      appearance: none;
+    }
+    .add-intent-trigger .card-icon {
+      border-style: dashed;
+      border-width: 1px;
+      border-color: rgba(33,32,29,0.25);
+      color: #8e8c88;
+      background: transparent;
+      transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+    }
+    .add-intent-trigger .card-title { color: #8e8c88; transition: color 160ms ease; }
+    .add-intent-trigger:hover .card-icon { border-color: rgba(33,32,29,0.5); color: #21201d; background: white; }
+    .add-intent-trigger:hover .card-title { color: #21201d; }
+    .add-intent-trigger:active .card-shell { transform: scale(0.98); }
+    .add-intent-trigger .card-shell { transition:
+        background-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 120ms ease; }
     .side-panel { transition: transform 0.2s ease; }
     .side-panel.hidden { transform: translateX(100%); }
+
+    /* Custom checkbox — matches Figma: 16px filled dark square with white check */
+    .intake-checkbox {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 1px solid rgba(33,32,29,0.3);
+      border-radius: 3px;
+      background: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease;
+      flex-shrink: 0;
+    }
+    .intake-checkbox:hover:not(:disabled) { border-color: #21201d; }
+    .intake-checkbox:checked {
+      background: #21201d;
+      border-color: #21201d;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='3.5 8.5 6.5 11.5 12.5 5'/></svg>");
+      background-size: 14px 14px;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    .intake-checkbox:disabled { cursor: not-allowed; opacity: 0.6; }
     .test-drawer { transition: transform 0.25s ease; }
     .test-drawer.collapsed { transform: translateY(calc(100% - 56px)); }
     .action-option { transition: all 0.12s; }
@@ -24,78 +168,226 @@
     .action-option.selected { background: #1c1917; color: white; }
     .action-option.selected .opt-icon { background: rgba(255,255,255,0.1); }
     .action-option.selected .opt-desc { color: rgba(255,255,255,0.7); }
-    .add-dropdown { animation: dropIn 0.15s ease-out; transform-origin: top left; }
-    @keyframes dropIn { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    /* Dropdown entrance — user-initiated, ease-out for a snappy settle */
+    .add-dropdown { animation: dropIn 180ms cubic-bezier(0.215, 0.61, 0.355, 1); transform-origin: top left; }
+    @keyframes dropIn { from { opacity: 0; transform: translateY(-6px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    /* Capability warning card */
+    .warning-card { animation: slideIn 220ms cubic-bezier(0.215, 0.61, 0.355, 1); }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: translateY(0) } }
+    /* Preview side panel — canvas-rendered AudioOrb ported from comms/web/src/components/openai-realtime/AudioOrb.tsx */
+    .blob-canvas {
+      width: 269px;
+      height: 250px;
+      pointer-events: none;
+      display: block;
+    }
+
+    /* The preview panel sits at z-50 (above the editor's z-40). A regular
+       box-shadow with a 28px blur bleeds in ALL directions — including
+       ~24px to the right of its right edge. With the editor flush at the
+       right, that bleed lands ON TOP of the editor (z-50 > z-40) and shows
+       up as a dark seam. To get a true "shadow only on the left" we drop the
+       box-shadow when both panels are open and draw the shadow as a
+       ::before-positioned gradient strip immediately to the LEFT of the
+       panel. Right side stays clean. */
+    .preview-panel.left-shadow-only { box-shadow: none !important; }
+    .preview-panel.left-shadow-only::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 100%;
+      width: 32px;
+      background: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.06) 100%);
+      pointer-events: none;
+    }
+
+    /* Mic button — sits at the base of the blob with a white halo ring */
+    .preview-mic {
+      position: relative;
+      margin-top: -28px;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      background: #21201d;
+      color: white;
+      border: 4px solid white;
+      box-sizing: content-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 160ms ease, transform 100ms ease, box-shadow 160ms ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      z-index: 5;
+    }
+    .preview-mic:hover  { transform: scale(1.04); }
+    .preview-mic:active { transform: scale(0.96); }
+    .preview-panel.recording .preview-mic {
+      background: #b22e2b;
+      animation: micPulse 1.3s ease-in-out infinite;
+    }
+    @keyframes micPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(178,46,43,0.55), 0 2px 8px rgba(0,0,0,0.12); }
+      70%      { box-shadow: 0 0 0 16px rgba(178,46,43,0), 0 2px 8px rgba(0,0,0,0.12); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .preview-mic { animation: none !important; }
+    }
+
+    /* Disconnect button — appears at the midpoint of a connection line on hover. */
+    .disconnect-btn {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: white;
+      border: 1px solid #e7e5e4;
+      color: #57534e;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 120ms ease, transform 120ms ease, background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+      pointer-events: none;
+      z-index: 12;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
+    }
+    .disconnect-btn.show { opacity: 1; pointer-events: auto; }
+    .disconnect-btn:hover {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #dc2626;
+      transform: scale(1.08);
+    }
+    /* Promote the canvas to a composited layer only during active pan/zoom.
+       At idle the layer is dropped so text/SVG re-rasterize crisp at the
+       current scale instead of bitmap-scaling a 1x snapshot. */
+    #canvas-transform.interacting { will-change: transform; }
+    @media (prefers-reduced-motion: reduce) {
+      .card-shell, .add-intent-trigger .card-shell, .add-intent-trigger .card-icon, .add-intent-trigger .card-title { transition: none; }
+      .add-dropdown { animation: none; }
+    }
   </style>
 </head>
 <body class="bg-stone-50 h-screen overflow-hidden">
 
-  <div class="h-14 bg-white border-b border-stone-200 flex items-center justify-between px-6 relative z-10">
-    <div class="flex items-center gap-3">
-      <a href="index.html" class="text-sm text-stone-500 hover:text-stone-900">← Gallery</a>
-      <div class="h-4 w-px bg-stone-200"></div>
-      <div class="text-sm font-medium text-stone-900">Agent Settings</div>
-      <span class="text-stone-300">/</span>
-      <div class="text-sm text-stone-500">Conversation flow</div>
-      <span class="text-xs px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded ml-2 border border-emerald-200">v3 · conditional editor</span>
-      <button onclick="resetToDefaults()" class="text-[11px] text-stone-400 hover:text-red-600 ml-2" title="Clear local customizations and reload seed data">Reset</button>
+  <div class="h-14 bg-white flex items-center justify-between pl-5 pr-4 relative z-30">
+    <div class="flex items-center gap-3 flex-1 min-w-0">
+      <a href="index.html" class="text-base font-medium text-[#21201d] hover:text-stone-700 leading-5">Agent customization</a>
+      <span class="text-base text-[var(--muted)] leading-5">/</span>
+      <div class="relative -ml-2">
+        <button id="mode-trigger" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-stone-100 text-base font-medium text-[#21201d] leading-5 transition">
+          <span id="mode-trigger-label">Business hours</span>
+          <span id="live-badge" class="inline-flex items-center gap-1 h-5 px-1.5 text-xs font-normal leading-5" style="background: #EAF1EA; color: #21201D; border-radius: 4px">
+            <span class="w-1.5 h-1.5 rounded-full" style="background: #177E1D"></span>
+            Live
+          </span>
+          <svg width="12" height="12" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--muted)]"><polyline points="208 96 128 176 48 96"/></svg>
+        </button>
+        <span id="mode-trigger-dot" class="hidden"></span>
+        <div id="mode-menu" class="hidden add-dropdown absolute left-0 mt-1.5 w-72 bg-white border border-stone-200 rounded-xl shadow-lg z-40 overflow-hidden">
+          <div class="px-3 py-2 border-b border-stone-100"><div class="text-[11px] font-medium text-stone-400 uppercase tracking-widest">Time blocks</div></div>
+          <div id="mode-options" class="py-1 max-h-72 overflow-y-auto scrollbar-thin"></div>
+          <div class="border-t border-stone-100 py-1">
+            <button id="add-time-block" class="w-full text-left px-3 py-2.5 hover:bg-stone-50 flex items-center gap-2.5 text-stone-900">
+              <span class="w-5 h-5 rounded border border-dashed border-stone-400 flex items-center justify-center text-xs leading-none">+</span>
+              <div><div class="text-sm font-medium">Add time block…</div><div class="text-xs text-stone-500">Override the agent's behavior in a window</div></div>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="flex items-center gap-3">
-      <div id="mode-tabs" class="flex items-center gap-1 bg-stone-100 rounded-md p-0.5">
-        <button data-mode="business" class="mode-tab text-xs px-2.5 py-1 bg-white text-stone-900 rounded shadow-sm">Business hours · 9–5</button>
-        <button data-mode="lunch" class="mode-tab text-xs px-2.5 py-1 text-stone-600 hover:text-stone-900">Lunch · 12–1</button>
-        <button data-mode="afterhours" class="mode-tab text-xs px-2.5 py-1 text-stone-600 hover:text-stone-900">After hours</button>
-      </div>
-      <div class="h-5 w-px bg-stone-200"></div>
-      <span id="draft-pill" class="text-xs text-stone-500 flex items-center gap-1.5">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-        All published
-      </span>
-      <button id="open-test" class="text-xs text-stone-600 hover:text-stone-900 px-2.5 py-1.5 rounded-md hover:bg-stone-50">Test flow</button>
-      <button id="publish-btn" disabled class="text-sm bg-stone-200 text-stone-400 px-3 py-1.5 rounded-md cursor-not-allowed">Publish</button>
+      <button id="preview-btn" class="h-9 text-sm font-medium text-[#21201d] hover:bg-stone-100 px-3 rounded-md transition leading-5">Preview</button>
+      <button id="publish-btn" disabled class="h-9 text-sm font-medium bg-stone-100 text-stone-400 px-3 rounded-md cursor-not-allowed leading-5">Publish</button>
+      <span id="draft-pill" class="hidden"></span>
+      <button id="open-test" class="hidden"></button>
+      <button onclick="resetToDefaults()" class="hidden"></button>
     </div>
   </div>
 
   <div class="flex h-[calc(100vh-56px)] relative">
 
-    <div class="flex-1 relative overflow-hidden cursor-grab select-none" id="canvas-viewport" style="background: #fafaf9;">
-      <div id="mode-banner" class="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-4 py-2 bg-white border border-stone-200 rounded-full shadow-sm flex items-center gap-2">
-        <span id="mode-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-        <span id="mode-label" class="text-xs font-medium text-stone-900">Business hours · Monday–Friday 9am–5pm</span>
-      </div>
-
-      <div id="canvas-transform" class="canvas-bg absolute top-0 left-0" style="width: 1300px; height: 900px; transform-origin: 0 0; transform: translate(0px, 0px) scale(1); will-change: transform;">
+    <div class="flex-1 relative overflow-hidden cursor-grab select-none" id="canvas-viewport" style="background: #ffffff;">
+      <div id="canvas-transform" class="absolute top-0 left-0" style="width: 1300px; height: 900px; transform-origin: 0 0; transform: translate(0px, 0px) scale(1);">
         <svg id="canvas-svg" class="absolute top-0 left-0 pointer-events-none" style="width: 1700px; height: 900px"></svg>
         <div id="canvas-nodes" class="relative" style="width: 1700px; height: 900px"></div>
       </div>
 
-      <div class="absolute bottom-6 right-6 bg-white border border-stone-200 rounded-lg shadow-sm flex items-center divide-x divide-stone-100 z-10">
-        <button id="zoom-out" class="px-3 py-2 text-sm text-stone-600 hover:bg-stone-50">−</button>
-        <button id="zoom-reset" class="px-3 py-2 text-sm text-stone-700 min-w-[58px]" title="Reset zoom"><span id="zoom-pct">100%</span></button>
-        <button id="zoom-in" class="px-3 py-2 text-sm text-stone-600 hover:bg-stone-50">+</button>
-      </div>
-
-      <div class="absolute bottom-6 left-6 bg-white/80 backdrop-blur border border-stone-200 rounded-lg px-3 py-2 text-xs text-stone-500 z-10 pointer-events-none">
-        Drag to pan · ⌘/Ctrl + scroll or pinch to zoom
+      <div class="absolute bottom-6 left-6 bg-white border border-stone-200 rounded-lg shadow-sm flex items-center divide-x divide-stone-100 z-10">
+        <button id="zoom-out" class="px-3 py-2 text-sm text-[var(--muted)] hover:bg-stone-50">−</button>
+        <button id="zoom-reset" class="px-3 py-2 text-sm text-[var(--muted)] min-w-[58px]" title="Reset zoom"><span id="zoom-pct">100%</span></button>
+        <button id="zoom-in" class="px-3 py-2 text-sm text-[var(--muted)] hover:bg-stone-50">+</button>
       </div>
     </div>
 
-    <div id="side-panel" class="side-panel hidden absolute right-0 top-0 h-full w-[28rem] bg-white border-l border-stone-200 shadow-xl z-40 flex flex-col">
-      <div class="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
-        <div id="panel-title" class="text-base font-medium text-stone-900 min-w-0 flex-1">—</div>
-        <button id="panel-close" class="text-stone-400 hover:text-stone-900 text-xl leading-none ml-2">×</button>
+    <!-- Preview side panel — voice agent preview with animated blob. Matches Figma 6576-3317. -->
+    <div id="preview-panel" class="preview-panel hidden fixed top-0 bottom-0 w-[400px] bg-[var(--bg-surface-primary)] border-l z-50 flex flex-col" style="right: 0; border-left-width: 0.5px; border-left-color: var(--border-header); box-shadow: -4px 0 28px rgba(0,0,0,0.06); transition: right 0.2s ease">
+      <div class="h-[60px] flex items-center justify-between pl-4 pr-3 border-b shrink-0" style="border-bottom-width: 0.5px; border-bottom-color: var(--border-default)">
+        <span class="text-[16px] font-medium leading-5" style="color: var(--fg-primary)">Preview</span>
+        <button id="preview-close" class="w-7 h-7 rounded-md flex items-center justify-center text-[var(--fg-tertiary)] hover:text-[var(--fg-primary)] hover:bg-stone-100 transition shrink-0">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg>
+        </button>
       </div>
-      <div id="panel-body" class="flex-1 overflow-y-auto scrollbar-thin"></div>
-      <div class="border-t border-stone-100 p-4 flex items-center justify-between">
-        <button id="panel-delete" class="text-xs text-red-600 hover:text-red-700">Delete intent</button>
-        <div class="flex gap-2">
-          <button id="panel-cancel" class="text-xs px-3 py-1.5 text-stone-600 hover:bg-stone-50 rounded-md">Cancel</button>
-          <button id="panel-save" class="text-xs px-3 py-1.5 bg-stone-900 text-white rounded-md hover:bg-stone-800">Save</button>
+      <div class="flex-1 flex flex-col items-center justify-center px-5 py-4 relative">
+        <div id="preview-label" class="text-sm font-medium tabular-nums leading-[18px] mb-3" style="color: var(--fg-primary)">Click to start talking</div>
+        <canvas id="preview-blob-canvas" class="blob-canvas" width="269" height="250" aria-hidden="true"></canvas>
+        <button id="preview-mic" class="preview-mic" aria-label="Tap to talk">
+          <svg width="18" height="18" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="88" y="24" width="80" height="144" rx="40"/>
+            <path d="M200 128a72 72 0 01-144 0"/>
+            <line x1="128" y1="200" x2="128" y2="232"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="side-panel" class="side-panel hidden fixed top-0 bottom-0 right-0 w-[400px] bg-[var(--bg-surface-primary)] border-l z-40 flex flex-col" style="border-left-width: 0.5px; border-left-color: var(--border-header); box-shadow: -4px 0 28px rgba(0,0,0,0.06)">
+      <!-- Header — matches Figma 4:5323 -->
+      <div class="h-[60px] flex items-center justify-between pl-4 pr-3 border-b shrink-0" style="border-bottom-width: 0.5px; border-bottom-color: var(--border-default)">
+        <div id="panel-title" class="relative flex items-center gap-1.5 min-w-0">
+          <span id="panel-intent-name" class="text-[16px] font-medium leading-5 text-[var(--fg-primary)]">—</span>
+          <span id="panel-action-sep" class="hidden w-[2px] h-[2px] rounded-sm bg-[var(--fg-tertiary)] shrink-0"></span>
+          <button id="panel-action-trigger" type="button" class="hidden items-center gap-1.5 rounded px-1 -mx-1 py-0.5 hover:bg-stone-100 transition cursor-pointer">
+            <span id="panel-action-label" class="text-[16px] font-medium leading-5 text-[var(--fg-primary)]"></span>
+            <svg id="panel-caret" class="shrink-0" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" style="color: var(--fg-primary)"><polyline points="2.5 3.75 5 6.25 7.5 3.75"/></svg>
+          </button>
+          <!-- Action-type menu (AI call / Human transfer) -->
+          <div id="panel-action-menu" class="hidden absolute left-0 top-9 w-56 rounded-md shadow-lg z-30 overflow-hidden" style="background: var(--bg-surface-primary); border: 0.5px solid var(--border-default)">
+            <button type="button" data-action-type="message" class="action-menu-option w-full text-left px-3 py-2 text-sm leading-[18px] hover:bg-stone-50" style="color: var(--fg-primary)">AI call</button>
+            <button type="button" data-action-type="transfer" class="action-menu-option w-full text-left px-3 py-2 text-sm leading-[18px] hover:bg-stone-50" style="color: var(--fg-primary); border-top: 0.5px solid var(--border-default)">Human transfer</button>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="panel-preview-btn" class="hidden h-9 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border text-sm font-medium leading-[18px] text-[var(--fg-primary)] hover:bg-stone-50 transition" style="border-width: 0.5px; border-color: var(--border-default)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <rect x="2.5" y="6.5" width="1" height="3" rx="0.5" fill="currentColor"/>
+              <rect x="5" y="4.5" width="1" height="7" rx="0.5" fill="currentColor"/>
+              <rect x="7.5" y="3" width="1" height="10" rx="0.5" fill="currentColor"/>
+              <rect x="10" y="4.5" width="1" height="7" rx="0.5" fill="currentColor"/>
+              <rect x="12.5" y="6.5" width="1" height="3" rx="0.5" fill="currentColor"/>
+            </svg>
+            Preview
+          </button>
+          <button id="panel-close" class="w-7 h-7 rounded-md flex items-center justify-center text-[var(--fg-tertiary)] hover:text-[var(--fg-primary)] hover:bg-stone-100 transition shrink-0">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg>
+          </button>
         </div>
       </div>
+      <div id="panel-body" class="flex-1 overflow-y-auto scrollbar-thin"></div>
+      <!-- Footer — matches Figma 4:5434 -->
+      <div id="panel-footer" class="flex items-center justify-end gap-2 pl-5 pr-3 py-3 shrink-0" style="height: 56px">
+        <button id="panel-cancel" class="hidden"></button>
+        <button id="panel-delete" class="hidden"></button>
+        <button id="panel-discard" class="inline-flex items-center h-9 px-3 py-2 text-sm font-medium leading-[18px] text-[var(--fg-disabled)] rounded-md cursor-not-allowed transition" disabled>Discard</button>
+        <button id="panel-save" class="inline-flex items-center h-9 px-3 py-2 text-sm font-medium leading-[18px] bg-[var(--fg-disabled)] text-[var(--fg-inverted)] rounded-md cursor-not-allowed transition" disabled>Save</button>
+      </div>
     </div>
 
-    <div id="test-drawer" class="test-drawer collapsed absolute bottom-0 left-0 right-0 bg-white border-t border-stone-200 shadow-xl z-30 h-96">
+    <div id="test-drawer" class="test-drawer collapsed hidden absolute bottom-0 left-0 right-0 bg-white border-t border-stone-200 shadow-xl z-30 h-96">
       <button id="test-toggle" class="w-full h-14 px-6 flex items-center justify-between border-b border-stone-100 hover:bg-stone-50">
         <div class="flex items-center gap-3">
           <span class="w-2 h-2 rounded-full bg-red-500"></span>
@@ -130,9 +422,11 @@
 
   <script>
     const ACTION_KINDS = {
-      transfer: { label: 'Transfer to a person', desc: 'Hand the caller to a phone number',  icon: '📞' },
-      message:  { label: 'Take details',          desc: 'Sage captures the caller’s request and routes to the right inbox', icon: '📝' },
-      schedule: { label: 'Schedule appointment', desc: 'Book directly into the EHR',         icon: '📅', requiresEhr: true },
+      message:  { label: 'Take a message',  headerLabel: 'AI call',   desc: 'Capture the caller’s request and route to the right inbox', iconSvg: 'envelopeOpen', iconColor: '#6a3cdf' },
+      transfer: { label: 'Transfer call',   headerLabel: 'Transfer',  desc: 'Hand the caller to a phone number',                          iconSvg: 'phone',        iconColor: '#24a8a4' },
+      // Schedule kept for backwards-compat with older saved intents but hidden from the picker
+      // (requires EHR integration we don't ship in v1).
+      schedule: { label: 'Schedule appointment', headerLabel: 'Schedule', desc: 'Book directly into the EHR', iconSvg: 'lightning', iconColor: '#2972c3', requiresEhr: true, hidden: true },
     };
 
     // EHR integration gate — when off, Schedule is disabled
@@ -151,11 +445,86 @@
     // Telemetry hook: log per-clinic prompt length distribution + frequency of edits.
     const PROMPT_LIMIT = 500;
 
+    // ============================================================
+    // Capability warning list — "things v1 can't do" surfaced in the
+    // Additional instructions textarea. Single warning category: inform-only,
+    // dismiss-until-prose-changes, never blocks save. Owned by PM; items come
+    // off the list as capabilities ship.
+    // ============================================================
+    const CAPABILITIES = [
+      {
+        id: 'books_appointments',
+        match: /\b(book|schedule|reschedule|cancel|set up|put on the calendar|arrange).*(appointment|visit|follow-?up|consult)|book a follow-?up\b/i,
+        issue: "The agent can't book, schedule, or cancel appointments.",
+        fallback: "Booking requests will be captured as a message and sent to the inbox below.",
+      },
+      {
+        id: 'lookup_records',
+        match: /\b(look ?up|pull ?up|check|read|access|find).*(record|chart|ehr|prescription|history|lab result|labs?)\b/i,
+        issue: "The agent can't access patient records, prescriptions, or lab results.",
+        fallback: "It'll collect what the caller is asking about and pass it along as a message.",
+      },
+      {
+        id: 'gives_medical_advice',
+        match: /\b(recommend|suggest|advise|tell them to take|dosage|what dose|diagnose|prescrib|medical advice|side effect.{0,30}(should|ought to))\b/i,
+        issue: "The agent never gives medical advice, recommends doses, or suggests treatment.",
+        fallback: "Clinical questions will be captured as a message routed to the clinical team.",
+      },
+      {
+        id: 'verify_insurance',
+        match: /\b(verify|check|confirm).*(insurance|coverage|eligibility|benefits)|in[- ]?network/i,
+        issue: "The agent can't verify insurance or eligibility.",
+        fallback: "It'll note the caller's insurance question and pass it to the billing inbox.",
+      },
+      {
+        id: 'outbound_message',
+        match: /\b(text|sms|email|message them|send.*(text|sms|email|confirmation)|reply with)\b/i,
+        issue: "The agent can't send texts or emails to callers.",
+        fallback: "It only takes a message during the call — follow-ups happen through your existing channels.",
+      },
+      {
+        id: 'outbound_call',
+        match: /\b(call them back|outbound call|dial|return their call|callback.*(automatically|right away))\b/i,
+        issue: "The agent can't make outbound calls.",
+        fallback: "Callback requests will be captured in the message so staff can follow up.",
+      },
+      {
+        id: 'transfer_call',
+        match: /\b(transfer|connect them|patch them|forward.*(call|caller)|put them through)\b/i,
+        issue: "This intent is set to take a message — it doesn't transfer the call.",
+        fallback: "To route to a person, switch the action above to Transfer.",
+      },
+      {
+        id: 'promises_outcomes',
+        match: /\b(promise|guarantee).*(turnaround|by tomorrow|within|approve|refund|specific time)|promise.*prior auth/i,
+        issue: "The agent shouldn't promise specific outcomes (approval timing, callback windows, refund amounts).",
+        fallback: "It can collect the question and let staff respond with specifics later.",
+      },
+      {
+        id: 'payments',
+        match: /\b(charge|refund|process.*(payment|card)|take their card|payment plan)\b/i,
+        issue: "The agent can't process payments, refunds, or take card information.",
+        fallback: "Payment requests will be routed to the billing inbox for staff follow-up.",
+      },
+    ];
+
+    function classifyProse(text) {
+      if (!text || !text.trim()) return [];
+      return CAPABILITIES.filter(c => c.match.test(text));
+    }
+    function hashProse(text) {
+      let h = 0;
+      for (let i = 0; i < text.length; i++) h = ((h << 5) - h + text.charCodeAt(i)) | 0;
+      return String(h);
+    }
+    // intentId → Set of dismissed prose hashes (session-scoped, not persisted)
+    const dismissedHashes = new Map();
+
     // Reusable per-clinic intake field library. Each field can be added to any intent's collect list.
     // In production: a clinic_intake_fields table seeded with defaults; clinics can add custom ones.
     const FIELD_LIBRARY = {
-      caller_name:             { label: 'Caller name',                  type: 'text'   },
-      callback_number:         { label: 'Callback phone',               type: 'phone'  },
+      caller_name:             { label: 'Full name',                    type: 'text'   },
+      callback_number:         { label: 'Call back number',             type: 'phone'  },
       dob:                     { label: 'Date of birth',                type: 'date'   },
       patient_relation:        { label: 'Patient or proxy?',            type: 'choice' },
       reason_brief:            { label: 'Brief reason for call',        type: 'text'   },
@@ -177,6 +546,19 @@
       trial:    [['caller_name',true],['callback_number',true],['study_interest',false]],
     };
 
+    // Realistic knowledge sources surfaced in each intent's "Knowledge source"
+    // section. Each entry mirrors a doc set a clinic would actually point the
+    // agent at — accepted insurance plans, FAQs, clinic hours, etc. The agent
+    // pulls answers from these when the caller asks something it can answer
+    // directly (vs. taking a message).
+    const DEFAULT_KNOWLEDGE = {
+      billing:  'Accepted insurance plans, payment plans & policies, billing FAQ, EOB explanations',
+      clinical: 'Clinic medical FAQ, common discharge instructions, escalation triggers, provider on-call schedule',
+      general:  'Hours of operation, location & directions, provider bios & specialties, services offered',
+      // Custom intents (created via "Add custom intent") — fall through to a sensible default
+      _default: 'Clinic FAQ, hours & location, provider directory',
+    };
+
     // Intents mirror the 5 canonical intents defined in
     // server/api/src/modules/agent/transfer-intent-guide.ts (scheduling, billing,
     // medication, clinical, general). Trigger examples are pulled verbatim from
@@ -184,38 +566,25 @@
     // model actually classifies on.
     const FLOWS = {
       business: {
-        label: "Business hours · Monday–Friday 9am–5pm",
+        label: "Business hours · Mon–Fri 9am–5pm",
         intents: [
           { id: 'urgent',     name: 'Urgent',     examples: ['this is urgent', "I'm having chest pain", 'I need help right now'], action: { type: 'transfer', targets: ['(415) 555-0911'] } },
           { id: 'scheduling', name: 'Scheduling', examples: ['I need to book an appointment', 'Can I reschedule my Tuesday visit?', 'Cancel my Friday appointment'], action: { type: 'transfer', targets: ['(415) 555-0142'] } },
-          { id: 'medication', name: 'Medication', examples: ['I need a refill on my blood-pressure med', 'The pharmacy says my prescription expired', "What's the status of my prior auth?"], action: { type: 'transfer', targets: ['(415) 555-0182'] } },
           { id: 'billing',    name: 'Billing',    examples: ["I got a bill I don't understand", 'Set up a payment plan', 'Did my insurance cover the lab work?'], action: { type: 'message',  prompt: 'Collect: caller name, account/MRN if they have it, callback number, and a brief description of the billing question.', inbox: 'billing' } },
           { id: 'clinical',   name: 'Clinical',   examples: ['I want to talk to a nurse about my labs', 'I have a question about my discharge instructions', "I'm having side effects from a new med"], action: { type: 'message',  prompt: 'Collect: name, DOB, what symptom or question they have, and urgency. Flag urgent if they mention chest pain, shortness of breath, or any other emergency signs.', inbox: 'clinical_team' } },
           { id: 'general',    name: 'General',    examples: ['Can I speak to someone?', 'Just put me through to the office'], action: { type: 'message',  prompt: 'Take down the caller name, callback number, and what they need.', inbox: 'front_desk' } },
-          { id: 'trial',      name: 'Clinical trial inquiry', custom: true, examples: ['how do I sign up for the trial', "I'm interested in the study"], action: { type: 'message', prompt: "Collect: caller name, callback number, and which study they're asking about. The research coordinator will follow up within a day.", inbox: 'clinical_team' } },
-        ],
-      },
-      lunch: {
-        label: "Lunch · 12pm–1pm",
-        intents: [
-          { id: 'urgent',     name: 'Urgent',     examples: ['this is urgent', "I'm having chest pain", 'I need help right now'], action: { type: 'transfer', targets: ['(415) 555-0911'] } },
-          { id: 'scheduling', name: 'Scheduling', examples: ['I need to book an appointment'], action: { type: 'message',  prompt: 'Take down the caller name and what they want to schedule. The scheduling team will call back within an hour.', inbox: 'front_desk' }, overridden: true },
-          { id: 'medication', name: 'Medication', examples: ['I need a refill on my blood-pressure med'], action: { type: 'transfer', targets: ['(415) 555-0182'] } },
-          { id: 'billing',    name: 'Billing',    examples: ["I got a bill I don't understand"], action: { type: 'message',  prompt: 'Collect: caller name and a brief description of the billing question.', inbox: 'billing' } },
-          { id: 'clinical',   name: 'Clinical',   examples: ['I want to talk to a nurse about my labs'], action: { type: 'transfer', targets: ['(415) 555-0911'] }, overridden: true },
-          { id: 'general',    name: 'General',    examples: ['Can I speak to someone?'], action: { type: 'message',  prompt: 'Take down the caller name, callback number, and reason for calling.', inbox: 'front_desk' } },
-          { id: 'trial',      name: 'Clinical trial inquiry', custom: true, examples: ['how do I sign up for the trial'], action: { type: 'message', prompt: "Collect: caller name, callback number, and which study they're asking about.", inbox: 'clinical_team' } },
+          { id: 'talk_human', name: 'Talk to human', examples: ['Can I talk to a real person?', "I don't want to talk to a robot", 'Get me a human'], action: { type: 'transfer', targets: ['(415) 555-0100'] } },
         ],
       },
       afterhours: {
-        label: "After hours · Mon–Fri after 5pm + weekends",
+        label: "After hours · Weeknights + weekends",
         intents: [
           { id: 'urgent',     name: 'Urgent',     examples: ['this is urgent', "I'm having chest pain", 'I need help right now'], action: { type: 'transfer', targets: ['(415) 555-0911', '(415) 555-0912'] } },
           { id: 'scheduling', name: 'Scheduling', examples: ['I need to book an appointment'], action: { type: 'message', prompt: 'Note down what the caller wants to schedule — scheduling will call back in the morning.', inbox: 'front_desk' }, overridden: true },
-          { id: 'medication', name: 'Medication', examples: ['I need a refill on my blood-pressure med'], action: { type: 'message', prompt: 'Take down name, DOB, medication, and pharmacy. Refill queue handles in the morning.', inbox: 'front_desk' }, overridden: true },
           { id: 'billing',    name: 'Billing',    examples: ["I got a bill I don't understand"], action: { type: 'message', prompt: 'Take down the caller name and callback number.', inbox: 'billing' } },
           { id: 'clinical',   name: 'Clinical',   examples: ['I want to talk to a nurse about my labs'], action: { type: 'transfer', targets: ['(415) 555-0911'] }, overridden: true },
           { id: 'general',    name: 'General',    examples: ['Can I speak to someone?'], action: { type: 'message', prompt: 'Capture the caller name, callback number, and reason — someone will follow up in the morning.', inbox: 'front_desk' } },
+          { id: 'talk_human', name: 'Talk to human', examples: ['Can I talk to a real person?', "I don't want to talk to a robot", 'Get me a human'], action: { type: 'transfer', targets: ['(415) 555-0911'] } },
         ],
       },
     };
@@ -230,9 +599,11 @@
       });
     });
 
+
     // Welcome message — directly editable text, applied to every call.
     const welcomeState = {
       text: "Thanks for calling Sterling Family Care. How may I help you today?",
+      _defaultText: "Thanks for calling Sterling Family Care. How may I help you today?",
     };
 
     function currentWelcomeText() {
@@ -257,18 +628,44 @@
 
     // Hydrate from localStorage if present. Done BEFORE _defaultPrompt seeding
     // would normally run, but since we made seeding idempotent it's fine here.
+    // Strip retired seed intents and the default-named custom-intent so old
+    // hydrated state doesn't resurrect intents we've removed from the source.
+    const RETIRED_INTENT_NAMES = new Set(['Clinical trial inquiry', 'New custom intent', 'Medication']);
+    // Capture the seed intent list BEFORE hydration so we can backfill any
+    // seed-added-after-the-user-first-loaded intents (e.g. "Talk to human")
+    // without forcing a Reset.
+    const SEED_INTENTS = {};
+    Object.keys(FLOWS).forEach(mode => {
+      SEED_INTENTS[mode] = JSON.parse(JSON.stringify(FLOWS[mode].intents || []));
+    });
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
         if (saved?.flows) {
           Object.keys(saved.flows).forEach(mode => {
-            if (FLOWS[mode]) FLOWS[mode] = saved.flows[mode];
+            if (FLOWS[mode]) {
+              FLOWS[mode] = saved.flows[mode];
+              FLOWS[mode].intents = (FLOWS[mode].intents || []).filter(i => !RETIRED_INTENT_NAMES.has(i.name));
+            }
           });
         }
         if (saved?.welcome != null) welcomeState.text = saved.welcome;
       }
     } catch (e) { console.warn('Failed to hydrate from localStorage:', e); }
+
+    // Backfill: append any seed intent (by id) that's missing from the
+    // hydrated mode. Preserves user customizations on intents they already
+    // had, and quietly adds new ones the prototype gained since they last loaded.
+    Object.keys(SEED_INTENTS).forEach(mode => {
+      if (!FLOWS[mode]) return;
+      const have = new Set((FLOWS[mode].intents || []).map(i => i.id));
+      SEED_INTENTS[mode].forEach(seedIntent => {
+        if (!have.has(seedIntent.id)) {
+          FLOWS[mode].intents.push(JSON.parse(JSON.stringify(seedIntent)));
+        }
+      });
+    });
 
     // Re-seed _defaultPrompt for any message action missing it (e.g. new intents added after hydration)
     Object.values(FLOWS).forEach(flow => {
@@ -278,6 +675,28 @@
         }
       });
     });
+
+    // Per-intent baseline snapshot — set to current action state on load and
+    // refreshed on publish. Any drift from the baseline shows the green dot
+    // on the node's icon.
+    const _ACTION_INTERNAL_KEYS = new Set(['_defaultPrompt', '_baseline', '_activeTab']);
+    function serializeAction(action) {
+      if (!action) return '';
+      const obj = {};
+      Object.keys(action).sort().forEach(k => {
+        if (_ACTION_INTERNAL_KEYS.has(k)) return;
+        obj[k] = action[k];
+      });
+      return JSON.stringify(obj);
+    }
+    function captureIntentBaselines() {
+      Object.values(FLOWS).forEach(flow => {
+        flow.intents.forEach(intent => {
+          intent._baseline = serializeAction(intent.action);
+        });
+      });
+    }
+    captureIntentBaselines();
 
     function persistFlows() {
       try {
@@ -296,176 +715,317 @@
     }
     window.resetToDefaults = resetToDefaults;
 
+    // ============================================================
+    // SVG icons — Phosphor Regular (downloaded from phosphor-icons/core)
+    // ============================================================
+    const ICON_SVG = {
+      smiley: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="92" cy="108" r="12" fill="currentColor"/><circle cx="164" cy="108" r="12" fill="currentColor"/><path d="M168,152c-8.3,14.35-22.23,24-40,24s-31.7-9.65-40-24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      lightning: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><polygon points="160 16 144 96 208 120 96 240 112 160 48 136 160 16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      envelopeOpen: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M32,96V200a8,8,0,0,0,8,8H216a8,8,0,0,0,8-8V96L128,32Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="110.55" y1="152" x2="34.47" y2="205.74" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="221.53" y1="205.74" x2="145.45" y2="152" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="224 96 145.46 152 110.55 152 32 96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      phone: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M164.39,145.34a8,8,0,0,1,7.59-.69l47.16,21.13a8,8,0,0,1,4.8,8.3A48.33,48.33,0,0,1,176,216,136,136,0,0,1,40,80,48.33,48.33,0,0,1,81.92,32.06a8,8,0,0,1,8.3,4.8l21.13,47.2a8,8,0,0,1-.66,7.53L89.32,117a7.93,7.93,0,0,0-.54,7.81c8.27,16.93,25.77,34.22,42.75,42.41a7.92,7.92,0,0,0,7.83-.59Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      plus: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><line x1="40" y1="128" x2="216" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="40" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      shield: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M40,114.79V56a8,8,0,0,1,8-8H208a8,8,0,0,1,8,8v58.79c0,84.05-71.31,111.85-85.49,116.55a7.9,7.9,0,0,1-5,0C111.31,226.64,40,198.84,40,114.79Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="88 128 112 152 168 96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      clipboard: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect x="40" y="40" width="176" height="200" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="80" y1="120" x2="176" y2="120" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="80" y1="160" x2="176" y2="160" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M88,72V56a8,8,0,0,1,8-8h64a8,8,0,0,1,8,8V72a8,8,0,0,1-8,8H96A8,8,0,0,1,88,72Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      flask: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M93.66,48H162.34a8,8,0,0,1,7.59,5.47L224,216a8,8,0,0,1-7.59,10.53H39.59A8,8,0,0,1,32,216L86.06,53.47A8,8,0,0,1,93.66,48Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="64" y1="160" x2="192" y2="160" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      globe: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="32" y1="128" x2="224" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><ellipse cx="128" cy="128" rx="40" ry="93.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      fileText: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M200,224H56a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h96l56,56V216A8,8,0,0,1,200,224Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="152 32 152 88 208 88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="96" y1="144" x2="160" y2="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="96" y1="184" x2="160" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      envelope: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect x="32" y="48" width="192" height="160" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="224 56 128 144 32 56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      clock: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="128 72 128 128 168 152" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      lock: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect x="40" y="88" width="176" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M88,88V56a40,40,0,0,1,80,0V88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>',
+      check: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><polyline points="216 72 104 184 48 128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg>',
+      flagPennant: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none"><path d="M17.0599 6.78102L4.12242 2.28102C4.03763 2.2515 3.947 2.24271 3.85811 2.25539C3.76922 2.26806 3.68466 2.30182 3.61149 2.35386C3.53832 2.4059 3.47867 2.4747 3.43753 2.5545C3.39639 2.6343 3.37495 2.7228 3.375 2.81258V15.1876C3.375 15.3368 3.43426 15.4798 3.53975 15.5853C3.64524 15.6908 3.78832 15.7501 3.9375 15.7501C4.08668 15.7501 4.22976 15.6908 4.33525 15.5853C4.44074 15.4798 4.5 15.3368 4.5 15.1876V12.2127L17.0599 7.84415C17.1704 7.80589 17.2663 7.73414 17.3341 7.63887C17.402 7.54359 17.4384 7.42954 17.4384 7.31258C17.4384 7.19562 17.402 7.08157 17.3341 6.9863C17.2663 6.89103 17.1704 6.81928 17.0599 6.78102ZM4.5 11.0216V3.6036L15.1629 7.31258L4.5 11.0216Z" fill="currentColor"/></svg>',
+      chatsCircle: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none"><path d="M2.28523 9.70306C1.71223 8.63257 1.54305 7.39179 1.80856 6.20697C2.07407 5.02215 2.75657 3.97222 3.73161 3.24863C4.70665 2.52504 5.90929 2.17599 7.12022 2.26513C8.33114 2.35428 9.4697 2.87567 10.3283 3.73424C11.1868 4.59282 11.7082 5.73137 11.7974 6.9423C11.8865 8.15323 11.5375 9.35586 10.8139 10.3309C10.0903 11.3059 9.04037 11.9884 7.85555 12.254C6.67073 12.5195 5.42995 12.3503 4.35945 11.7773L2.40758 12.351C2.31066 12.3795 2.20786 12.3813 2.10998 12.3564C2.01211 12.3314 1.92276 12.2805 1.85133 12.2091C1.77991 12.1376 1.72903 12.0483 1.70405 11.9504C1.67907 11.8525 1.68091 11.7498 1.70937 11.6528L2.28523 9.70306Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.5272 5.63281C12.3777 5.67905 13.2027 5.9391 13.9259 6.38889C14.6492 6.83868 15.2473 7.46367 15.6648 8.206C16.0823 8.94833 16.3058 9.78401 16.3146 10.6357C16.3234 11.4873 16.1172 12.3274 15.715 13.0782L16.2888 15.0301C16.3172 15.127 16.3191 15.2298 16.2941 15.3277C16.2691 15.4255 16.2182 15.5149 16.1468 15.5863C16.0754 15.6577 15.986 15.7086 15.8882 15.7336C15.7903 15.7586 15.6875 15.7567 15.5906 15.7283L13.6408 15.1524C12.9967 15.4969 12.2858 15.698 11.5567 15.7419C10.8277 15.7859 10.0977 15.6717 9.41689 15.4072C8.73608 15.1427 8.12053 14.734 7.61242 14.2093C7.10432 13.6847 6.71568 13.0563 6.47314 12.3673" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    };
+
+    // ============================================================
+    // Action style — Figma 6483:2677–2702 (icon tint + color tokens)
+    // ============================================================
+    const ACTION_STYLE = {
+      schedule: { bg: 'rgba(39,111,158,0.06)', border: 'rgba(39,111,158,0.20)', color: '#276f9e', icon: 'lightning', accentClass: 'title-accent-schedule' },
+      message:  { bg: 'rgba(106,60,223,0.06)', border: 'rgba(106,60,223,0.20)', color: '#6a3cdf', icon: 'envelopeOpen', accentClass: 'title-accent-message' },
+      transfer: { bg: 'rgba(36,168,164,0.06)', border: 'rgba(36,168,164,0.20)', color: '#24a8a4', icon: 'phone', accentClass: 'title-accent-transfer' },
+    };
+    const WELCOME_STYLE = { bg: 'rgba(103,68,191,0.06)', border: 'rgba(103,68,191,0.20)', color: '#6744bf' };
+
+    // ============================================================
+    // Card subtitle helpers
+    // ============================================================
+    function inboxDisplay(key) {
+      const map = { billing: 'Billing inbox', clinical_team: 'Clinical inbox', front_desk: 'Front desk inbox', scheduling_athena: 'Scheduling in Athena' };
+      return map[key] || (key ? `${key} inbox` : 'General inbox');
+    }
+    function scheduleSubtitle(a) {
+      const caps = (a.capabilities || []).map(c => ({ book:'Booking', reschedule:'Rescheduling', cancel:'Cancellation' })[c]).filter(Boolean);
+      const ehr = a.ehr || 'Athena';
+      return caps.length ? `${ehr} • ${caps.join(' • ')}` : ehr;
+    }
+    function transferSubtitle(a) {
+      const targets = a.targets || [];
+      return targets.length === 0 ? 'No number set' : targets.length === 1 ? targets[0] : `${targets[0]} +${targets.length - 1} more`;
+    }
+    function cardSubtitle(a) {
+      // Message-type intents route to an inbox via the AI agent. Show both halves
+      // so the canvas card explains the full path: "AI call → Front desk inbox".
+      if (a.type === 'message')  return `AI call → ${inboxDisplay(a.inbox)}`;
+      if (a.type === 'schedule') return scheduleSubtitle(a);
+      if (a.type === 'transfer') return transferSubtitle(a);
+      return '';
+    }
+    function isIntentCustomized(intent) {
+      // Compare the intent's current action against its captured baseline.
+      // ANY change to a saved field flips this true → green dot shows on the
+      // node icon. Baseline is reset on publish.
+      if (intent._baseline === undefined) return false;
+      return serializeAction(intent.action) !== intent._baseline;
+    }
+
     let activeMode = 'business';
+    let selectedNodeId = null;
 
     const $nodes = document.getElementById('canvas-nodes');
     const $svg = document.getElementById('canvas-svg');
-    const $modeLabel = document.getElementById('mode-label');
-    const $modeDot = document.getElementById('mode-dot');
+    const $modeTriggerLabel = document.getElementById('mode-trigger-label');
+    const $modeTriggerDot = document.getElementById('mode-trigger-dot');
+
+    function modeDotClass(modeKey) {
+      if (modeKey === 'business') return 'bg-emerald-500';
+      if (modeKey === 'lunch') return 'bg-amber-500';
+      if (modeKey === 'afterhours') return 'bg-stone-500';
+      return 'bg-sky-500';
+    }
+
+    function shortModeLabel(label) {
+      // "24/7 · Always on" → "24/7"; "Lunch · Mon–Fri 12pm–1pm" → "Lunch"
+      return (label || '').split('·')[0].trim() || label;
+    }
 
     function render() {
       const flow = FLOWS[activeMode];
-      $modeLabel.textContent = flow.label;
-      $modeDot.className = `w-1.5 h-1.5 rounded-full ${activeMode === 'business' ? 'bg-emerald-500' : activeMode === 'lunch' ? 'bg-amber-500' : 'bg-stone-500'}`;
+      if ($modeTriggerLabel) $modeTriggerLabel.textContent = shortModeLabel(flow.label);
+      if ($modeTriggerDot) $modeTriggerDot.className = `w-1.5 h-1.5 rounded-full ${modeDotClass(activeMode)}`;
 
       $nodes.innerHTML = '';
       $svg.innerHTML = '';
 
-      $nodes.appendChild(makeStartNode());
-      $nodes.appendChild(makeWelcomeNode());
-      $nodes.appendChild(makeClassifyNode());
+      // Layout (matches Figma 6483-2594)
+      // Welcome card (left=300, width=240) ends at x=540. INTENT_LEFT must sit comfortably to
+      // the right of that so (a) the cards don't overlap and (b) the connector arrow draws
+      // forwards (left→right) — when INTENT_LEFT < welcomeRight the arrow head pointed backwards.
+      const INTENT_LEFT = 740;
+      const INTENT_TOP_START = 80;
+      const INTENT_GAP_Y = 57;
+      const INTENT_CARD_BASE_HEIGHT = 56;  // unselected: padding 10+icon 36+10
+      const INTENT_CARD_WIDTH = 216;
 
+      // Calc total height + center welcome vertically against the stack
+      const stackHeight = flow.intents.length * INTENT_CARD_BASE_HEIGHT + (flow.intents.length - 1) * INTENT_GAP_Y;
+      const stackCenterY = INTENT_TOP_START + stackHeight / 2;
+      const welcomeTop = stackCenterY - 28;  // 28 = half of welcome card height
+
+      // Start (Incoming call) — kept as a labelled chip on the far left
+      const $startNode = makeStartNode(80, welcomeTop);
+      $nodes.appendChild($startNode);
+
+      // Welcome message
+      const welcomeLeft = 300;
+      $nodes.appendChild(makeWelcomeNode(welcomeLeft, welcomeTop));
+
+      // Intent cards (combined intent + action)
       flow.intents.forEach((intent, i) => {
-        const top = 30 + i * 115;
-        $nodes.appendChild(makeIntentNode(intent, top));
-        $nodes.appendChild(makeActionNode(intent, top));
-        drawConnection(860, 110, 1000, top + 30, `c-classify-${intent.id}`);
-        drawConnection(1200, top + 30, 1300, top + 30, `c-${intent.id}-action`);
+        const top = INTENT_TOP_START + i * (INTENT_CARD_BASE_HEIGHT + INTENT_GAP_Y);
+        $nodes.appendChild(makeIntentCard(intent, INTENT_LEFT, top));
       });
 
-      const addTop = 30 + flow.intents.length * 115;
-      $nodes.appendChild(makeAddIntentButton(addTop));
-      drawConnection(280, 110, 380, 110, 'c-start-welcome');
-      drawConnection(580, 110, 660, 110, 'c-welcome-classify');
+      // Add intent button below the stack
+      const addTop = INTENT_TOP_START + flow.intents.length * (INTENT_CARD_BASE_HEIGHT + INTENT_GAP_Y);
+      $nodes.appendChild(makeAddIntentButton(INTENT_LEFT, addTop));
+
+      // Connections
+      // Start (right edge measured from rendered node) → Welcome
+      const startRight = 80 + ($startNode.firstElementChild?.offsetWidth || 176);
+      drawConnection(startRight, welcomeTop + 28, welcomeLeft, welcomeTop + 28, 'c-start-welcome');
+      // Welcome → each intent (fan-out)
+      const welcomeRight = welcomeLeft + INTENT_CARD_WIDTH;  // 300+216=516
+      const welcomeCenterY = welcomeTop + 28;
+      flow.intents.forEach((intent, i) => {
+        const top = INTENT_TOP_START + i * (INTENT_CARD_BASE_HEIGHT + INTENT_GAP_Y);
+        const cardCenterY = top + INTENT_CARD_BASE_HEIGHT / 2;
+        drawConnection(welcomeRight, welcomeCenterY, INTENT_LEFT, cardCenterY, `c-welcome-${intent.id}`);
+      });
     }
 
-    function makeWelcomeNode() {
+    function makeStartNode(left, topCenter) {
+      // Vertically center against the welcome row.
+      const top = topCenter;  // pass through the same vertical center as welcome
+      const el = document.createElement('div');
+      el.className = 'start-node absolute';
+      el.style.left = `${left}px`;
+      el.style.top = `${top}px`;
+      el.dataset.nodeId = 'start';
+      el.innerHTML = `
+        <div class="card-shell no-bg" style="width:auto">
+          <div class="card-icon" style="background:rgba(102,101,97,0.06);border-color:rgba(102,101,97,0.20);color:#666561">${ICON_SVG.flagPennant}</div>
+          <div class="card-text">
+            <div class="card-title">Incoming call</div>
+            <div class="card-subtitle">${shortModeLabel(FLOWS[activeMode].label)}</div>
+          </div>
+        </div>`;
+      return el;
+    }
+
+    function makeWelcomeNode(left, top) {
       const el = document.createElement('div');
       el.className = 'flow-node absolute';
-      el.style.left = '380px'; el.style.top = '80px';
+      el.style.left = `${left}px`;
+      el.style.top = `${top}px`;
       el.dataset.nodeId = 'welcome';
-      const text = currentWelcomeText();
-      const truncated = text.length > 90 ? text.substring(0, 90) + '…' : text;
+      const isSelected = selectedNodeId === 'welcome';
+      const shellClass = `card-shell no-bg${isSelected ? ' is-selected' : ''}`;
+      // Welcome's customization dot: shown when the text has been edited from default.
+      const isCustomized = welcomeState.text !== welcomeState._defaultText;
+      const dot = isCustomized ? '<div class="card-dot"></div>' : '';
+      const iconStyle = isSelected
+        ? `background:${WELCOME_STYLE.bg};color:${WELCOME_STYLE.color}`
+        : `background:${WELCOME_STYLE.bg};border-color:${WELCOME_STYLE.border};color:${WELCOME_STYLE.color}`;
       el.innerHTML = `
-        <div class="w-48 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
-          <div class="text-sm font-medium text-stone-900">Welcome message</div>
-          <div class="text-xs text-stone-500 mt-1 italic leading-snug">"${truncated}"</div>
+        <div class="${shellClass}">
+          <div class="card-icon" style="${iconStyle}">${ICON_SVG.smiley}</div>
+          <div class="card-text"><div class="card-title">Greeting</div></div>
+          ${dot}
         </div>`;
       el.addEventListener('click', openWelcomePanel);
       return el;
     }
 
-    function makeStartNode() {
+    function makeIntentCard(intent, left, top) {
       const el = document.createElement('div');
       el.className = 'flow-node absolute';
-      el.style.left = '100px'; el.style.top = '80px';
-      el.innerHTML = `
-        <div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
-          <div class="text-sm font-medium text-stone-900">Incoming call</div>
-          <div class="text-xs text-stone-500 mt-0.5">${FLOWS[activeMode].label}</div>
-        </div>`;
-      return el;
-    }
-
-    function makeClassifyNode() {
-      const el = document.createElement('div');
-      el.className = 'flow-node absolute';
-      el.style.left = '660px'; el.style.top = '80px';
-      el.dataset.nodeId = 'classify';
-      el.innerHTML = `
-        <div class="w-44 bg-white border border-stone-200 rounded-xl p-3 shadow-sm">
-          <div class="text-sm font-medium text-stone-900">Decides caller intent</div>
-          <div class="text-xs text-stone-500 mt-0.5">${FLOWS[activeMode].intents.length} intents</div>
-        </div>`;
-      return el;
-    }
-
-    function makeIntentNode(intent, top) {
-      const el = document.createElement('div');
-      el.className = 'flow-node absolute';
-      el.style.left = '1000px'; el.style.top = `${top}px`;
+      el.style.left = `${left}px`;
+      el.style.top = `${top}px`;
       el.dataset.nodeId = `intent-${intent.id}`;
-      const ring = intent.custom ? 'border-2 border-purple-300 bg-purple-50/30' : 'border border-stone-200 bg-white';
-      const triggerLine = intent.custom && intent.examples?.[0]
-        ? `<div class="text-xs text-stone-500 mt-0.5 italic">"${intent.examples[0]}"</div>`
-        : '';
-      el.innerHTML = `
-        <div class="w-48 ${ring} rounded-xl p-3 shadow-sm">
-          <div class="text-sm font-medium text-stone-900">${intent.name}</div>
-          ${triggerLine}
-        </div>`;
-      el.addEventListener('click', () => openIntentPanel(intent.id));
-      return el;
-    }
-
-    function makeActionNode(intent, top) {
-      const el = document.createElement('div');
-      el.className = 'flow-node absolute';
-      el.style.left = '1300px'; el.style.top = `${top}px`;
-      el.dataset.nodeId = `action-${intent.id}`;
       const a = intent.action;
-      const targets = a.targets || [];
-      const visibleTargets = targets.slice(0, 3);
-      const overflow = Math.max(0, targets.length - 3);
-      const transferDetail = targets.length === 0
-        ? `Transfer<div class="text-xs text-stone-500 mt-0.5">No number set</div>`
-        : `Transfer to<div class="mt-1 space-y-0.5 text-xs text-stone-700 font-mono">${visibleTargets.map(t => `<div class="truncate">${t}</div>`).join('')}</div>${overflow > 0 ? `<div class="text-xs text-stone-500 mt-0.5 flex items-center gap-1"><span>+${overflow} more</span><span class="text-stone-400">▾</span></div>` : ''}`;
-      const detailLine = a.type === 'transfer' ? transferDetail
-                       : a.type === 'message'  ? `${ACTION_KINDS.message.label}<div class="text-xs text-stone-500 mt-0.5">→ ${inboxLabel(a.inbox)}</div>`
-                       : a.type === 'schedule' ? `Schedule in EHR<div class="text-xs text-stone-500 mt-0.5">${((a.capabilities || []).map(c => ({ book:'Book', reschedule:'Reschedule', cancel:'Cancel' })[c]).filter(Boolean).join(' · ')) || 'No actions enabled'}</div>`
-                       : '';
-      const overrideTag = intent.overridden ? `<div class="absolute -top-2 -right-2 text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded border border-amber-200">override</div>` : '';
-      // Option D — background tint when the action has custom instructions
-      // (only message actions carry a free-text prompt today)
-      const isCustomized = a.type === 'message' && a.prompt && a.prompt !== a._defaultPrompt;
-      const cardClasses = isCustomized
-        ? 'bg-amber-50/40 border border-amber-100'
-        : 'bg-white border border-stone-200';
+      let style = ACTION_STYLE[a.type] || ACTION_STYLE.message;
+      if (a.type === 'message' && a.inbox === 'scheduling_athena') {
+        style = { bg: 'rgba(41,114,195,0.06)', border: 'rgba(41,114,195,0.20)', color: '#2972C3', icon: 'lightning', accentClass: 'title-accent-schedule' };
+      }
+      const isSelected = selectedNodeId === `intent-${intent.id}`;
+      const isCustomized = isIntentCustomized(intent);
+      const dot = isCustomized ? '<div class="card-dot"></div>' : '';
+      const titleClass = 'card-title';
+      const subtitle = cardSubtitle(a);
+      const iconStyle = isSelected
+        ? `background:${style.bg};color:${style.color}`
+        : `background:${style.bg};border-color:${style.border};color:${style.color}`;
       el.innerHTML = `
-        <div class="relative w-52 ${cardClasses} rounded-xl p-3 shadow-sm">
-          ${overrideTag}
-          <div class="text-sm text-stone-900">${detailLine}</div>
+        <div class="card-shell${isSelected ? ' is-selected' : ''}">
+          <div class="card-icon" style="${iconStyle}">${ICON_SVG[style.icon]}</div>
+          <div class="card-text">
+            <div class="${titleClass}">${intent.name}</div>
+            ${subtitle ? `<div class="card-subtitle">${subtitle}</div>` : ''}
+          </div>
+          ${dot}
         </div>`;
-      el.addEventListener('click', () => openIntentPanel(intent.id));
+      el.addEventListener('click', () => {
+        selectedNodeId = `intent-${intent.id}`;
+        render();
+        openIntentPanel(intent.id);
+      });
       return el;
     }
 
-    function drawConnection(x1, y1, x2, y2, id) {
+    function drawConnection(x1, y1, x2, y2, id, opts) {
+      opts = opts || {};
       const xc = x1 + (x2 - x1) * 0.5;
+      const d = `M ${x1} ${y1} C ${xc} ${y1}, ${xc} ${y2}, ${x2} ${y2}`;
+      // Visible curve
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', `M ${x1} ${y1} C ${xc} ${y1}, ${xc} ${y2}, ${x2} ${y2}`);
-      path.setAttribute('stroke', '#d6d3d1'); path.setAttribute('stroke-width', '2');
+      path.setAttribute('d', d);
+      path.setAttribute('stroke', '#d6d3d1'); path.setAttribute('stroke-width', '1');
       path.setAttribute('fill', 'none'); path.setAttribute('id', id);
       $svg.appendChild(path);
-      const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-      arrow.setAttribute('points', `${x2-6},${y2-3} ${x2},${y2} ${x2-6},${y2+3}`);
-      arrow.setAttribute('fill', '#d6d3d1');
-      $svg.appendChild(arrow);
+
+      // Wider invisible hit-area + DOM disconnect button at midpoint (only when disconnect callback is supplied)
+      if (typeof opts.disconnect === 'function') {
+        const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        hit.setAttribute('d', d);
+        hit.setAttribute('stroke', 'transparent');
+        hit.setAttribute('stroke-width', '18');
+        hit.setAttribute('fill', 'none');
+        hit.style.cursor = 'pointer';
+        hit.style.pointerEvents = 'stroke';
+        $svg.appendChild(hit);
+
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        const btn = document.createElement('button');
+        btn.className = 'disconnect-btn';
+        btn.style.left = `${mx - 11}px`;
+        btn.style.top = `${my - 11}px`;
+        btn.title = opts.label || 'Disconnect';
+        btn.innerHTML = '<svg viewBox="0 0 256 256" width="11" height="11" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round"><line x1="56" y1="56" x2="200" y2="200"/><line x1="200" y1="56" x2="56" y2="200"/></svg>';
+        btn.addEventListener('click', (e) => { e.stopPropagation(); opts.disconnect(); });
+        $nodes.appendChild(btn);
+
+        // Show button when hovering either the hit-area or the button itself
+        const show = () => btn.classList.add('show');
+        const hide = () => btn.classList.remove('show');
+        hit.addEventListener('mouseenter', show);
+        hit.addEventListener('mouseleave', hide);
+        path.addEventListener('mouseenter', show);
+        path.addEventListener('mouseleave', hide);
+        btn.addEventListener('mouseenter', show);
+        btn.addEventListener('mouseleave', hide);
+      }
     }
 
-    function makeAddIntentButton(top) {
+    function makeAddIntentButton(left, top) {
       const el = document.createElement('div');
       el.className = 'absolute';
-      el.style.left = '1000px'; el.style.top = `${top}px`;
+      el.style.left = `${left}px`; el.style.top = `${top}px`;
       el.innerHTML = `
         <div class="relative">
-          <button id="add-intent-trigger" class="w-48 border border-dashed border-stone-300 rounded-xl px-3 py-3 text-sm text-stone-500 hover:text-stone-900 hover:border-stone-500 hover:bg-white transition flex items-center justify-center gap-1.5 group">
-            <span class="w-4 h-4 rounded-full bg-stone-100 group-hover:bg-stone-900 group-hover:text-white flex items-center justify-center text-xs leading-none transition">+</span>
-            <span>Add intent</span>
+          <button id="add-intent-trigger" class="add-intent-trigger flow-node">
+            <div class="card-shell">
+              <div class="card-icon">${ICON_SVG.plus}</div>
+              <div class="card-text"><div class="card-title">Add custom intent</div></div>
+            </div>
           </button>
-          <div id="add-intent-dropdown" class="hidden add-dropdown absolute left-0 mt-1.5 w-72 bg-white border border-stone-200 rounded-xl shadow-lg z-30 overflow-hidden">
-            <div class="px-3 py-2 border-b border-stone-100"><div class="text-[11px] font-medium text-stone-400 uppercase tracking-widest">Suggested intents</div></div>
+          <div id="add-intent-dropdown" class="hidden add-dropdown absolute left-3 mt-1 w-80 bg-white border border-stone-200 rounded-xl shadow-lg z-30 overflow-hidden">
+            <div class="px-3 py-2 border-b border-stone-100"><div class="text-[11px] font-medium text-stone-400 uppercase tracking-widest">Pre-built intents</div></div>
             <div class="py-1 max-h-72 overflow-y-auto scrollbar-thin">
               <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Insurance verification" data-example="Do you take my insurance?">
-                <span class="text-base">🛡️</span><div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Insurance verification</div><div class="text-xs text-stone-500 truncate">"Do you take my insurance?"</div></div>
+                <span class="suggested-icon w-4 h-4 mt-0.5 inline-flex items-center justify-center text-stone-500 shrink-0">${ICON_SVG.shield}</span>
+                <div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Insurance verification</div><div class="text-xs text-stone-500 truncate">"Do you take my insurance?"</div></div>
               </button>
               <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="New patient registration" data-example="I'd like to become a new patient">
-                <span class="text-base">📋</span><div class="flex-1 min-w-0"><div class="text-sm text-stone-900">New patient registration</div><div class="text-xs text-stone-500 truncate">"I'd like to become a new patient"</div></div>
+                <span class="suggested-icon w-4 h-4 mt-0.5 inline-flex items-center justify-center text-stone-500 shrink-0">${ICON_SVG.clipboard}</span>
+                <div class="flex-1 min-w-0"><div class="text-sm text-stone-900">New patient registration</div><div class="text-xs text-stone-500 truncate">"I'd like to become a new patient"</div></div>
               </button>
               <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Lab results inquiry" data-example="I'm calling about my lab results">
-                <span class="text-base">🧪</span><div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Lab results inquiry</div><div class="text-xs text-stone-500 truncate">"I'm calling about my lab results"</div></div>
+                <span class="suggested-icon w-4 h-4 mt-0.5 inline-flex items-center justify-center text-stone-500 shrink-0">${ICON_SVG.flask}</span>
+                <div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Lab results inquiry</div><div class="text-xs text-stone-500 truncate">"I'm calling about my lab results"</div></div>
               </button>
               <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Spanish-speaking caller" data-example="Hola, ¿hablan español?">
-                <span class="text-base">🌐</span><div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Spanish-speaking caller</div><div class="text-xs text-stone-500 truncate">"Hola, ¿hablan español?"</div></div>
+                <span class="suggested-icon w-4 h-4 mt-0.5 inline-flex items-center justify-center text-stone-500 shrink-0">${ICON_SVG.globe}</span>
+                <div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Spanish-speaking caller</div><div class="text-xs text-stone-500 truncate">"Hola, ¿hablan español?"</div></div>
               </button>
-              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Records request" data-example="I need a copy of my medical records">
-                <span class="text-base">📄</span><div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Medical records request</div><div class="text-xs text-stone-500 truncate">"I need a copy of my medical records"</div></div>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Medical records request" data-example="I need a copy of my medical records">
+                <span class="suggested-icon w-4 h-4 mt-0.5 inline-flex items-center justify-center text-stone-500 shrink-0">${ICON_SVG.fileText}</span>
+                <div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Medical records request</div><div class="text-xs text-stone-500 truncate">"I need a copy of my medical records"</div></div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Referral request" data-example="My doctor sent a referral">
+                <span class="suggested-icon w-4 h-4 mt-0.5 inline-flex items-center justify-center text-stone-500 shrink-0">${ICON_SVG.envelope}</span>
+                <div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Referral request</div><div class="text-xs text-stone-500 truncate">"My doctor sent a referral"</div></div>
+              </button>
+              <button class="suggested-intent w-full text-left px-3 py-2 hover:bg-stone-50 flex items-start gap-2.5" data-name="Office hours & location" data-example="What time do you close today?">
+                <span class="suggested-icon w-4 h-4 mt-0.5 inline-flex items-center justify-center text-stone-500 shrink-0">${ICON_SVG.clock}</span>
+                <div class="flex-1 min-w-0"><div class="text-sm text-stone-900">Office hours & location</div><div class="text-xs text-stone-500 truncate">"What time do you close today?"</div></div>
               </button>
             </div>
             <div class="border-t border-stone-100 py-1">
               <button id="add-custom-intent" class="w-full text-left px-3 py-2.5 hover:bg-stone-50 flex items-center gap-2.5 text-stone-900">
-                <span class="w-5 h-5 rounded border border-dashed border-stone-400 flex items-center justify-center text-xs">+</span>
-                <div><div class="text-sm font-medium">Custom intent…</div><div class="text-xs text-stone-500">Define your own from scratch</div></div>
+                <span class="w-5 h-5 rounded border border-dashed border-stone-400 flex items-center justify-center text-xs leading-none">+</span>
+                <div><div class="text-sm font-medium">Define your own…</div><div class="text-xs text-stone-500">Start from a blank intent</div></div>
               </button>
             </div>
           </div>
@@ -474,12 +1034,44 @@
       return el;
     }
 
+    // Attach the document-level outside-click handler once — render() re-creates the trigger
+    // and dropdown nodes each time, but this listener only ever needs to exist once.
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('add-intent-dropdown');
+      const trigger = document.getElementById('add-intent-trigger');
+      if (dropdown && !dropdown.classList.contains('hidden')) {
+        if (!dropdown.contains(e.target) && !(trigger && trigger.contains(e.target))) {
+          dropdown.classList.add('hidden');
+        }
+      }
+      const inboxMenu = document.getElementById('inbox-menu');
+      const inboxTrigger = document.getElementById('inbox-trigger');
+      if (inboxMenu && !inboxMenu.classList.contains('hidden')) {
+        if (!inboxMenu.contains(e.target) && !(inboxTrigger && inboxTrigger.contains(e.target))) {
+          inboxMenu.classList.add('hidden');
+        }
+      }
+      const intakeMenu = document.getElementById('add-intake-menu');
+      const intakeTrigger = document.getElementById('add-intake-trigger');
+      if (intakeMenu && !intakeMenu.classList.contains('hidden')) {
+        if (!intakeMenu.contains(e.target) && !(intakeTrigger && intakeTrigger.contains(e.target))) {
+          intakeMenu.classList.add('hidden');
+        }
+      }
+      const callbackMenu = document.getElementById('callback-menu');
+      const callbackTrigger = document.getElementById('callback-trigger');
+      if (callbackMenu && !callbackMenu.classList.contains('hidden')) {
+        if (!callbackMenu.contains(e.target) && !(callbackTrigger && callbackTrigger.contains(e.target))) {
+          callbackMenu.classList.add('hidden');
+        }
+      }
+    });
+
     function wireAddIntentDropdown() {
       const trigger = document.getElementById('add-intent-trigger');
       const dropdown = document.getElementById('add-intent-dropdown');
       if (!trigger || !dropdown) return;
       trigger.addEventListener('click', (e) => { e.stopPropagation(); dropdown.classList.toggle('hidden'); });
-      document.addEventListener('click', (e) => { if (!dropdown.contains(e.target) && e.target !== trigger) dropdown.classList.add('hidden'); });
       document.querySelectorAll('.suggested-intent').forEach(btn => btn.addEventListener('click', () => { addNewIntent({ name: btn.dataset.name, example: btn.dataset.example }); dropdown.classList.add('hidden'); }));
       document.getElementById('add-custom-intent').addEventListener('click', () => { addNewIntent({ name: 'New custom intent', example: 'When the caller says…' }); dropdown.classList.add('hidden'); });
     }
@@ -497,11 +1089,71 @@
     const $sidePanel = document.getElementById('side-panel');
     const $panelTitle = document.getElementById('panel-title');
     const $panelBody = document.getElementById('panel-body');
+    const $panelIntentName = document.getElementById('panel-intent-name');
+    const $panelActionSep = document.getElementById('panel-action-sep');
+    const $panelActionTrigger = document.getElementById('panel-action-trigger');
+    const $panelActionLabel = document.getElementById('panel-action-label');
+    const $panelActionMenu = document.getElementById('panel-action-menu');
+    const $panelCaret = document.getElementById('panel-caret');
+    const $panelPreviewBtn = document.getElementById('panel-preview-btn');
+    const $panelFooter = document.getElementById('panel-footer');
+
+    // Helper: set the header breadcrumb. actionLabel optional.
+    function setPanelHeader(name, actionLabel) {
+      $panelIntentName.textContent = name || '';
+      if (actionLabel) {
+        $panelActionSep.classList.remove('hidden');
+        $panelActionTrigger.classList.remove('hidden');
+        $panelActionTrigger.classList.add('flex');
+        $panelPreviewBtn.classList.remove('hidden');
+        $panelActionLabel.textContent = actionLabel;
+      } else {
+        $panelActionSep.classList.add('hidden');
+        $panelActionTrigger.classList.add('hidden');
+        $panelActionTrigger.classList.remove('flex');
+        $panelPreviewBtn.classList.add('hidden');
+        $panelActionMenu.classList.add('hidden');
+      }
+    }
+
+    // Action-type menu (AI call / Human transfer) — wired once on load.
+    // Tracks which intent the open editor is for, so options apply to the right one.
+    let _activeIntentForActionMenu = null;
+    if ($panelActionTrigger) {
+      $panelActionTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        $panelActionMenu.classList.toggle('hidden');
+      });
+    }
+    // Event delegation on the static menu container — survives panel re-renders.
+    if ($panelActionMenu) {
+      $panelActionMenu.addEventListener('click', (e) => {
+        const opt = e.target.closest('.action-menu-option');
+        if (!opt || !_activeIntentForActionMenu) return;
+        e.stopPropagation();
+        const newType = opt.dataset.actionType;
+        const intent = _activeIntentForActionMenu;
+        $panelActionMenu.classList.add('hidden');
+        if (!newType || newType === intent.action.type) return;
+        intent.action = freshActionDefaults(newType, intent.action);
+        setPanelHeader(intent.name, ACTION_KINDS[newType]?.headerLabel || null);
+        $panelBody.innerHTML = renderIntentBody(intent);
+        wirePanelInteractions(intent);
+        render();
+        document.querySelector(`[data-node-id="intent-${intent.id}"]`)?.classList.add('selected');
+        markDirty();
+      });
+    }
+    document.addEventListener('click', (e) => {
+      if (!$panelActionMenu.classList.contains('hidden') && !$panelActionMenu.contains(e.target) && !$panelActionTrigger.contains(e.target)) {
+        $panelActionMenu.classList.add('hidden');
+      }
+    });
 
     function openWelcomePanel() {
-      document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('selected'));
-      document.querySelector('[data-node-id="welcome"]')?.classList.add('selected');
-      $panelTitle.textContent = 'Welcome message';
+      selectedNodeId = 'welcome';
+      render();
+      setPanelHeader('Greeting');
       $panelBody.innerHTML = renderWelcomeBody();
       wireWelcomePanel();
       $sidePanel.classList.remove('hidden');
@@ -510,10 +1162,10 @@
     function renderWelcomeBody() {
       return `
         <div class="p-5 space-y-4">
-          <p class="text-xs text-stone-500">Sage's opening line on every call, before classifying the caller's intent.</p>
+          <p class="text-xs text-stone-500">The opening line on every call, before classifying the caller's intent.</p>
 
           <div>
-            <label class="text-xs font-medium text-stone-700">Welcome message</label>
+            <label class="text-xs font-medium text-stone-700">Greeting</label>
             <textarea id="welcome-text" rows="4" placeholder="e.g., Thanks for calling Sterling Family Care. How may I help you today?" class="mt-1.5 w-full px-3 py-2.5 text-sm bg-white border border-stone-200 rounded-md resize-none focus:outline-none focus:border-stone-400">${welcomeState.text}</textarea>
             <p class="text-[11px] text-stone-500 mt-1.5 leading-snug">
               Played verbatim at the start of every call. Keep it short — one sentence — so callers can interrupt with their request.
@@ -534,31 +1186,621 @@
       }
     }
 
+    // ============================================================
+    // Preview side panel — voice agent preview with the actual comms AudioOrb
+    // ported to vanilla JS. Canvas draw function lifted from
+    // comms/web/src/components/openai-realtime/AudioOrb.tsx (lines 31–223);
+    // audio analyser pattern mirrors useAudioAnalyser.ts.
+    //
+    // Idle: gentle breathing + idle wobble (no audio source needed).
+    // Recording: requests mic permission, pipes the mic stream through a
+    // Web Audio AnalyserNode, and feeds frequency data into the same draw
+    // loop the real product uses. If mic access is denied, we fall back to
+    // synthesized frequency data so the visual still demos.
+    // ============================================================
+    const $previewPanel = document.getElementById('preview-panel');
+    const $previewBtn   = document.getElementById('preview-btn');
+    const $previewClose = document.getElementById('preview-close');
+    const $previewMic   = document.getElementById('preview-mic');
+    const $previewLabel = document.getElementById('preview-label');
+    const $blobCanvas   = document.getElementById('preview-blob-canvas');
+    const IDLE_LABEL = 'Click to start talking';
+
+    // --- AudioOrb state (mirrors the refs in AudioOrb.tsx) ---
+    const orb = {
+      time: 0,
+      smoothVolume: 0,
+      smoothBass: 0,
+      smoothMid: 0,
+      smoothHigh: 0,
+      freqData: new Uint8Array(128),
+      volume: 0,
+      isActive: false,
+      fakeData: false,         // true when we couldn't get a real mic stream
+      rafId: 0,
+    };
+
+    // --- Audio plumbing (mirrors useAudioAnalyser.ts) ---
+    let audioCtx = null;
+    let analyserNode = null;
+    let micStream = null;
+    let micSourceNode = null;
+
+    async function startMicAnalyser() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStream = stream;
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 256;
+        analyserNode.smoothingTimeConstant = 0.75;
+        orb.freqData = new Uint8Array(analyserNode.frequencyBinCount);
+        micSourceNode = audioCtx.createMediaStreamSource(stream);
+        micSourceNode.connect(analyserNode);
+        // Note: deliberately NOT connecting analyser → destination; we don't want feedback.
+        orb.fakeData = false;
+        return true;
+      } catch (err) {
+        console.warn('[preview] mic access denied — falling back to synthesized audio for the visual:', err.message);
+        orb.fakeData = true;
+        return false;
+      }
+    }
+    function stopMicAnalyser() {
+      try {
+        if (micSourceNode) micSourceNode.disconnect();
+        if (analyserNode)  analyserNode.disconnect();
+      } catch {}
+      if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+      micSourceNode = null;
+      analyserNode = null;
+    }
+
+    // --- Pull real frequency data each frame, or synthesize if no analyser ---
+    function pullAudio() {
+      if (analyserNode) {
+        analyserNode.getByteFrequencyData(orb.freqData);
+        let sum = 0;
+        for (let i = 0; i < orb.freqData.length; i++) sum += orb.freqData[i];
+        orb.volume = sum / orb.freqData.length / 255;
+      } else if (orb.fakeData) {
+        // Synthesized spectrum — sinusoidal energy across bands so the morph still demos
+        const t = orb.time;
+        for (let i = 0; i < orb.freqData.length; i++) {
+          const a = Math.sin(t * 1.3 + i * 0.04) * 60;
+          const b = Math.sin(t * 2.1 + i * 0.08) * 40;
+          const c = Math.cos(t * 0.7 + i * 0.02) * 30;
+          orb.freqData[i] = Math.max(0, Math.min(255, 100 + a + b + c));
+        }
+        orb.volume = 0.55 + Math.sin(t * 1.7) * 0.25;
+      }
+    }
+
+    // --- Canvas draw — ported almost verbatim from AudioOrb.tsx ---
+    const POINTS = 128;
+    const TWO_PI = Math.PI * 2;
+
+    function drawBlob() {
+      const canvas = $blobCanvas;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      ctx.clearRect(0, 0, w, h);
+
+      const cx = w / 2;
+      const cy = h / 2;
+      const maxRadius = Math.min(w, h) * 0.37;
+
+      orb.time += 0.008;
+      const t = orb.time;
+
+      const targetVolume = orb.isActive ? orb.volume : 0;
+      orb.smoothVolume += (targetVolume - orb.smoothVolume) * 0.14;
+      const sv = orb.smoothVolume;
+
+      const data = orb.freqData;
+      const binCount = data.length;
+
+      const getBand = (center) => {
+        if (binCount === 0) return 0;
+        const lo = Math.max(0, center - 3);
+        const hi = Math.min(binCount - 1, center + 3);
+        let s = 0;
+        for (let b = lo; b <= hi; b++) s += data[b];
+        return s / (hi - lo + 1) / 255;
+      };
+
+      const rawBass = orb.isActive ? getBand(Math.floor(binCount * 0.08)) : 0;
+      const rawMid  = orb.isActive ? getBand(Math.floor(binCount * 0.3))  : 0;
+      const rawHigh = orb.isActive ? getBand(Math.floor(binCount * 0.6))  : 0;
+
+      orb.smoothBass += (rawBass - orb.smoothBass) * 0.04;
+      orb.smoothMid  += (rawMid  - orb.smoothMid)  * 0.035;
+      orb.smoothHigh += (rawHigh - orb.smoothHigh) * 0.03;
+      const bass = orb.smoothBass;
+      const mid  = orb.smoothMid;
+      const high = orb.smoothHigh;
+
+      // Idle breathing
+      const breathe = 1 + Math.sin(t * 1.2) * 0.02;
+      const baseRadius = maxRadius * breathe;
+      const volumeScale = 1 + sv * 0.5;
+
+      // Hue shift: bass → blue, mid/high → purple
+      const blueShift = Math.min(1, bass * 2);
+      const purpleShift = Math.min(1, (mid + high) * 1.5);
+      const colorMix = orb.isActive
+        ? Math.max(0.25, Math.min(0.75, 0.5 + purpleShift * 0.2 - blueShift * 0.15))
+        : 0.5;
+
+      const lerp = (r1,g1,b1,r2,g2,b2,t) => [
+        Math.round(r1 + (r2 - r1) * t),
+        Math.round(g1 + (g2 - g1) * t),
+        Math.round(b1 + (b2 - b1) * t),
+      ];
+      const [cr, cg, cb] = lerp(80,160,255, 170,70,255, colorMix);
+      const [mr, mg, mb] = lerp(90,140,255, 185,80,255, colorMix);
+
+      // Outer glow — 3 layered radial gradients
+      for (let layer = 3; layer >= 1; layer--) {
+        const glowRadius = baseRadius * volumeScale + layer * 16 + sv * layer * 18;
+        const glowAlpha  = orb.isActive ? 0.04 + sv * 0.08 * (1 / layer) : 0.02 * (1 / layer);
+        const grad = ctx.createRadialGradient(cx, cy, baseRadius * 0.5, cx, cy, glowRadius);
+        grad.addColorStop(0,   `rgba(${cr},${cg},${cb},${glowAlpha})`);
+        grad.addColorStop(0.5, `rgba(${mr},${mg},${mb},${glowAlpha * 0.5})`);
+        grad.addColorStop(1,   `rgba(${cr},${cg},${cb},0)`);
+        ctx.beginPath();
+        ctx.arc(cx, cy, glowRadius, 0, TWO_PI);
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
+
+      // Build morphing perimeter with audio-driven displacement
+      const points = [];
+      for (let i = 0; i < POINTS; i++) {
+        const angle = (i / POINTS) * TWO_PI;
+        let displacement = 0;
+        if (orb.isActive && binCount > 0) {
+          displacement =
+            bass * Math.sin(angle * 2 + t * 0.6) * maxRadius * 0.07 +
+            mid  * Math.sin(angle * 3 + t * 0.9) * maxRadius * 0.045 +
+            high * Math.sin(angle * 5 + t * 1.4) * maxRadius * 0.025;
+          displacement *= sv * 4;
+        }
+        const idleWobble =
+          Math.sin(angle * 2 + t * 0.5) * 3.5 +
+          Math.sin(angle * 3 + t * 0.7) * 2.0 +
+          Math.sin(angle * 5 + t * 0.3) * 1.0;
+        const r = baseRadius * volumeScale + displacement + idleWobble;
+        points.push([cx + Math.cos(angle) * r, cy + Math.sin(angle) * r]);
+      }
+
+      // Cardinal spline interpolation through the points
+      ctx.beginPath();
+      ctx.moveTo(points[0][0], points[0][1]);
+      for (let i = 0; i < points.length; i++) {
+        const p0 = points[(i - 1 + points.length) % points.length];
+        const p1 = points[i];
+        const p2 = points[(i + 1) % points.length];
+        const p3 = points[(i + 2) % points.length];
+        const tension = 0.35;
+        const cp1x = p1[0] + (p2[0] - p0[0]) * tension;
+        const cp1y = p1[1] + (p2[1] - p0[1]) * tension;
+        const cp2x = p2[0] - (p3[0] - p1[0]) * tension;
+        const cp2y = p2[1] - (p3[1] - p1[1]) * tension;
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
+      }
+      ctx.closePath();
+
+      // Body fill
+      const fillGrad = ctx.createRadialGradient(
+        cx - baseRadius * 0.2, cy - baseRadius * 0.2, baseRadius * 0.1,
+        cx, cy, baseRadius * volumeScale * 1.2,
+      );
+      fillGrad.addColorStop(0,   'rgba(190,215,255,0.95)');
+      fillGrad.addColorStop(0.3, `rgba(${cr},${cg},${cb},0.9)`);
+      fillGrad.addColorStop(0.7, `rgba(${mr},${mg},${mb},0.6)`);
+      fillGrad.addColorStop(1,   `rgba(${cr},${cg},${cb},0)`);
+      ctx.fillStyle = fillGrad;
+      ctx.fill();
+
+      // Inner specular highlight
+      const hi = ctx.createRadialGradient(
+        cx - baseRadius * 0.25, cy - baseRadius * 0.3, 0,
+        cx - baseRadius * 0.1,  cy - baseRadius * 0.1, baseRadius * 0.6,
+      );
+      hi.addColorStop(0,   'rgba(255,255,255,0.35)');
+      hi.addColorStop(0.5, 'rgba(255,255,255,0.08)');
+      hi.addColorStop(1,   'rgba(255,255,255,0)');
+      ctx.fillStyle = hi;
+      ctx.fill();
+
+      // Edge stroke — alpha scales with volume when active
+      const edgeAlpha = orb.isActive ? 0.12 + sv * 0.2 : 0.08;
+      ctx.strokeStyle = `rgba(${mr},${mg},${mb},${edgeAlpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Center glow
+      const centerSize = baseRadius * 0.4 * (1 + sv * 0.5);
+      const centerGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, centerSize);
+      const centerAlpha = orb.isActive ? 0.12 + sv * 0.25 : 0.06 + Math.sin(t * 1.5) * 0.03;
+      centerGrad.addColorStop(0, `rgba(255,255,255,${centerAlpha})`);
+      centerGrad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.beginPath();
+      ctx.arc(cx, cy, centerSize, 0, TWO_PI);
+      ctx.fillStyle = centerGrad;
+      ctx.fill();
+    }
+
+    function tickOrb() {
+      pullAudio();
+      drawBlob();
+      orb.rafId = requestAnimationFrame(tickOrb);
+    }
+    function startOrb() { if (!orb.rafId) orb.rafId = requestAnimationFrame(tickOrb); }
+    function stopOrb()  { if (orb.rafId) { cancelAnimationFrame(orb.rafId); orb.rafId = 0; } }
+
+    // --- Recording state ---
+    let recordingStart = 0;
+    let recordingTimer = null;
+
+    // Open the preview panel. Pass alongside=true to keep the editor visible
+    // (panel sits to the LEFT of editor). Default false → preview replaces editor.
+    function openPreviewPanel(opts) {
+      const alongside = opts && opts.alongside === true;
+      if (alongside && !$sidePanel.classList.contains('hidden')) {
+        // Slide preview to the left of the 400px editor
+        $previewPanel.style.right = '400px';
+        // Activate the editor's Preview button — matches Figma 4:8012 active state:
+        // light blue tint background, primary blue text/icon, borderless.
+        $panelPreviewBtn.style.background = 'rgba(50,107,232,0.08)';
+        $panelPreviewBtn.style.color = '#326BE8';
+        $panelPreviewBtn.style.borderColor = 'transparent';
+        // Drop the editor's left-cast shadow when both panels are open — the preview
+        // sits flush against it, and the stacked shadows otherwise darken the seam.
+        $sidePanel.style.boxShadow = 'none';
+        // Swap the preview's box-shadow (which would bleed onto the editor) for a
+        // pseudo-element gradient strip that only exists to the LEFT of the panel.
+        $previewPanel.classList.add('left-shadow-only');
+      } else {
+        // Global preview — close editor, take the right edge
+        $sidePanel.classList.add('hidden');
+        $previewPanel.style.right = '0';
+      }
+      $previewPanel.classList.remove('hidden');
+      startOrb();
+    }
+    function closePreviewPanel() {
+      stopRecording();
+      $previewPanel.classList.add('hidden');
+      $previewPanel.style.right = '0';
+      // Reset the editor Preview button active styling
+      $panelPreviewBtn.style.background = '';
+      $panelPreviewBtn.style.color = '';
+      $panelPreviewBtn.style.borderColor = '';
+      // Restore the editor's left-cast shadow now that it stands alone again.
+      // (Clearing to '' would NOT fall back to the inline-style attribute — once we
+      // set it via JS, that's the only source of truth.)
+      $sidePanel.style.boxShadow = '-4px 0 28px rgba(0,0,0,0.06)';
+      // Restore the preview's normal box-shadow (only matters if it gets reopened in
+      // global mode — when alongside the editor it'll get re-added next time).
+      $previewPanel.classList.remove('left-shadow-only');
+      stopOrb();
+    }
+    async function startRecording() {
+      $previewPanel.classList.add('recording');
+      recordingStart = Date.now();
+      $previewLabel.textContent = '00:00';
+      recordingTimer = setInterval(() => {
+        const sec = Math.floor((Date.now() - recordingStart) / 1000);
+        const mm = String(Math.floor(sec / 60)).padStart(2, '0');
+        const ss = String(sec % 60).padStart(2, '0');
+        $previewLabel.textContent = `${mm}:${ss}`;
+      }, 250);
+
+      const got = await startMicAnalyser();
+      orb.isActive = true;
+      if (!got) console.warn('[preview] mic blocked — using synthesized audio for the blob');
+    }
+    function stopRecording() {
+      $previewPanel.classList.remove('recording');
+      $previewLabel.textContent = IDLE_LABEL;
+      if (recordingTimer) clearInterval(recordingTimer);
+      recordingTimer = null;
+      stopMicAnalyser();
+      orb.isActive = false;
+      orb.fakeData = false;
+    }
+
+    // Global Preview button (top bar) — opens preview WITHOUT editor context
+    if ($previewBtn)      $previewBtn.addEventListener('click', () => openPreviewPanel({ alongside: false }));
+    // Editor-panel Preview button — opens preview ALONGSIDE the editor
+    if ($panelPreviewBtn) $panelPreviewBtn.addEventListener('click', () => openPreviewPanel({ alongside: true }));
+    if ($previewClose) $previewClose.addEventListener('click', closePreviewPanel);
+    if ($previewMic)   $previewMic.addEventListener('click', () => {
+      if ($previewPanel.classList.contains('recording')) stopRecording();
+      else startRecording();
+    });
+
     function openIntentPanel(intentId) {
       const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
       if (!intent) return;
-      document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('selected'));
-      document.querySelector(`[data-node-id="intent-${intent.id}"]`)?.classList.add('selected');
-      document.querySelector(`[data-node-id="action-${intent.id}"]`)?.classList.add('selected');
-      $panelTitle.textContent = intent.name;
+      selectedNodeId = `intent-${intent.id}`;
+      render();
+      setPanelHeader(intent.name, ACTION_KINDS[intent.action.type]?.headerLabel || null);
       $panelBody.innerHTML = renderIntentBody(intent);
       wirePanelInteractions(intent);
       $sidePanel.classList.remove('hidden');
+      // Snapshot the intent's state as it was on open, so Discard can revert to it
+      // and Save/Discard can switch between disabled/enabled based on diff.
+      _editingIntent = intent;
+      _editingSnapshot = intentSnapshot(intent);
+      updateSaveDiscardState();
+    }
+
+    // ─── Save/Discard state tracking ────────────────────────────────────────
+    // Snapshot of the intent at the moment the panel was opened (or last saved).
+    // If the live intent differs from this, Save + Discard light up.
+    let _editingIntent = null;
+    let _editingSnapshot = null;
+
+    function intentSnapshot(intent) {
+      return JSON.stringify({
+        name: intent.name,
+        examples: intent.examples,
+        smsTargets: intent.smsTargets,
+        action: intent.action,
+      });
+    }
+
+    function isPanelDirty() {
+      if (!_editingIntent || _editingSnapshot == null) return false;
+      return intentSnapshot(_editingIntent) !== _editingSnapshot;
+    }
+
+    function updateSaveDiscardState() {
+      const dirty = isPanelDirty();
+      const $save = document.getElementById('panel-save');
+      const $discard = document.getElementById('panel-discard');
+      if ($save) {
+        if (dirty) {
+          $save.disabled = false;
+          $save.className = 'inline-flex items-center h-9 px-3 py-2 text-sm font-medium leading-[18px] bg-[var(--fg-primary)] text-[var(--fg-inverted)] rounded-md hover:opacity-90 transition cursor-pointer';
+        } else {
+          $save.disabled = true;
+          $save.className = 'inline-flex items-center h-9 px-3 py-2 text-sm font-medium leading-[18px] bg-[var(--fg-disabled)] text-[var(--fg-inverted)] rounded-md cursor-not-allowed transition';
+        }
+      }
+      if ($discard) {
+        if (dirty) {
+          $discard.disabled = false;
+          $discard.className = 'inline-flex items-center h-9 px-3 py-2 text-sm font-medium leading-[18px] text-[var(--fg-primary)] hover:bg-stone-100 rounded-md transition cursor-pointer';
+        } else {
+          $discard.disabled = true;
+          $discard.className = 'inline-flex items-center h-9 px-3 py-2 text-sm font-medium leading-[18px] text-[var(--fg-disabled)] rounded-md cursor-not-allowed transition';
+        }
+      }
+    }
+
+    function discardPanelChanges() {
+      if (!_editingIntent || _editingSnapshot == null) return;
+      const snap = JSON.parse(_editingSnapshot);
+      // Restore every field that the editor can mutate
+      _editingIntent.name        = snap.name;
+      _editingIntent.examples    = snap.examples;
+      _editingIntent.smsTargets  = snap.smsTargets;
+      _editingIntent.action      = snap.action;
+      // Re-render panel body so all inputs reflect the restored values
+      setPanelHeader(_editingIntent.name, ACTION_KINDS[_editingIntent.action.type]?.headerLabel || null);
+      $panelBody.innerHTML = renderIntentBody(_editingIntent);
+      wirePanelInteractions(_editingIntent);
+      // Repaint the canvas (card subtitle, connection lines, etc.)
+      render();
+      persistFlows();
+      updateSaveDiscardState();
     }
 
     function renderIntentBody(intent) {
+      if (intent.action.type === 'message') {
+        return `
+          <div id="action-config">
+            ${renderMessageConfig(intent)}
+          </div>
+          ${intent.overridden ? `<div class="mx-5 mb-4 p-3 bg-amber-50/50 border border-amber-200 rounded-lg text-xs text-amber-800">Overridden in this mode.</div>` : ''}
+        `;
+      }
+      // For non-message types (transfer, schedule) — header menu drives the
+      // action type, so skip the in-body action dropdown.
       return `
-        <div class="p-5 space-y-6">
+        <div class="px-4 py-4 flex flex-col gap-8">
           ${intent.custom ? renderTriggerSignals(intent) : ''}
 
-          ${renderActionDropdown(intent.action.type)}
-
-          <div id="action-config" class="space-y-4">
+          <div id="action-config">
             ${renderActionConfig(intent.action, intent.id)}
           </div>
 
           ${intent.overridden ? `
           <div class="p-3 bg-amber-50/50 border border-amber-200 rounded-lg text-xs text-amber-800">Overridden in this mode.</div>` : ''}
+        </div>
+      `;
+    }
+
+    function renderMessageConfig(intent) {
+      const action = intent.action;
+      const prompt = action.prompt || '';
+      const collect = action.collect || [];
+      const activeTab = action._activeTab || 'during'; // 'during' | 'post'
+
+      const inboxOptions = [
+        { key: 'front_desk',        label: 'Front desk inbox' },
+        { key: 'billing',           label: 'Billing inbox' },
+        { key: 'clinical_team',     label: 'Clinic inbox' },
+        { key: 'scheduling_athena', label: 'Scheduling in Athena' },
+      ];
+      const currentInbox = inboxOptions.find(o => o.key === action.inbox) || inboxOptions[0];
+
+      const knowledgeText = action.knowledgeSource || DEFAULT_KNOWLEDGE[intent.id] || DEFAULT_KNOWLEDGE._default;
+      const emailEnabled = action.emailEnabled !== false; // default ON
+      const emailTo = action.emailTo || 'info@springclinic.com';
+
+      // Caret-up-down SVG used by all selector fields (matches Figma CaretUpDown)
+      const caretUpDownSvg = `
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" style="color: var(--fg-tertiary)">
+          <polyline points="5 10 8 13 11 10"/>
+          <polyline points="5 6 8 3 11 6"/>
+        </svg>`;
+
+      // ─── Tabs (Segmented Toggle) — matches Figma 4:6480 ────────────────────
+      const tabs = `
+        <div class="flex items-center justify-center p-[2px] rounded-lg w-full" style="background: var(--bg-surface-secondary)">
+          <div class="flex flex-1 items-center gap-1 rounded-md overflow-hidden">
+            <button type="button" data-tab="during" class="tab-btn flex-1 flex items-center justify-center px-3 py-1.5 rounded-md text-sm leading-[18px] font-medium transition ${activeTab === 'during' ? 'bg-[var(--bg-surface-primary)] border' : ''}" ${activeTab === 'during' ? 'style="border-width: 0.5px; border-color: var(--border-default); color: var(--fg-primary)"' : 'style="color: var(--neutral-10)"'}>
+              During the call
+            </button>
+            <button type="button" data-tab="post" class="tab-btn flex-1 flex items-center justify-center px-3 py-1.5 rounded-md text-sm leading-[18px] font-medium transition ${activeTab === 'post' ? 'bg-[var(--bg-surface-primary)] border' : ''}" ${activeTab === 'post' ? 'style="border-width: 0.5px; border-color: var(--border-default); color: var(--fg-primary)"' : 'style="color: var(--neutral-10)"'}>
+              Post call
+            </button>
+          </div>
+        </div>`;
+
+      // ─── During-the-call tab content ───────────────────────────────────────
+      const duringTab = `
+        <div data-tab-content="during" class="flex flex-col gap-8 w-full ${activeTab === 'during' ? '' : 'hidden'}">
+
+          <!-- What information should AI collect? (Figma 4:5347) -->
+          <div class="flex flex-col gap-1.5">
+            <p class="text-sm font-medium leading-[18px]" style="color: var(--fg-primary)">What information should AI collect?</p>
+            <div class="flex flex-col">
+              ${collect.map(f => {
+                const def = FIELD_LIBRARY[f.key] || {};
+                const label = f.label || def.label || f.key;
+                return `
+                  <div class="flex items-center gap-1 h-7 py-0.5">
+                    <label class="flex items-center justify-center p-1 cursor-pointer" title="Uncheck to remove">
+                      <input type="checkbox" data-field-key="${f.key}" checked class="intake-checkbox" />
+                    </label>
+                    <span class="flex-1 text-sm leading-[18px]" style="color: var(--fg-primary)">${label}</span>
+                  </div>
+                `;
+              }).join('')}
+              <div id="add-intake-row" class="flex items-center gap-1 h-7 py-0.5">
+                <span class="flex items-center justify-center p-1">
+                  <span class="intake-checkbox"></span>
+                </span>
+                <button id="add-intake-trigger" type="button" class="flex-1 text-left text-sm leading-[18px] transition" style="color: var(--fg-tertiary)">Add new</button>
+                <input id="add-intake-input" type="text" placeholder="Type your question and press Enter" class="hidden flex-1 text-sm leading-[18px] bg-transparent border-0 outline-none focus:ring-0" style="color: var(--fg-primary)" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Knowledge source (Figma 4:6431) — stacked label / content / link -->
+          <div class="flex flex-col gap-2 w-full">
+            <p class="text-sm font-medium leading-[18px]" style="color: var(--fg-primary)">Knowledge source</p>
+            <p class="text-sm leading-[18px]" style="color: var(--fg-primary)">${knowledgeText}</p>
+            <a href="#" class="text-sm leading-[18px] hover:underline self-start" style="color: var(--fg-link)">Edit in Knowledge</a>
+          </div>
+
+          <!-- How soon to promise a callback (Figma 4:5362) -->
+          ${(() => {
+            const presetMap = {within_1h:'Within 1 hour',within_4h:'Within 4 hours',within_1bd:'1-2 business days',within_2bd:'Within 2 business days',within_week:'Within the week'};
+            const presetKeys = Object.keys(presetMap);
+            const cb = action.callbackExpectation || 'within_1bd';
+            const isCustom = cb && !presetKeys.includes(cb);
+            const triggerLabel = isCustom ? cb : presetMap[cb];
+            const escapeAttr = (s) => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+            return `
+          <div class="flex flex-col gap-2 w-full">
+            <p class="text-sm font-medium leading-[18px]" style="color: var(--fg-primary)">How soon to promise a callback</p>
+            <div class="relative">
+              <button id="callback-trigger" type="button" class="w-full h-8 flex items-center justify-center gap-1 rounded-md pl-3 pr-2 transition" style="background: var(--bg-surface-primary); border: 0.5px solid var(--border-default)">
+                <span id="callback-trigger-label" class="flex-1 text-left text-sm leading-[18px]" style="color: var(--fg-primary)">${escapeAttr(triggerLabel)}</span>
+                ${caretUpDownSvg}
+              </button>
+              <div id="callback-menu" class="hidden add-dropdown absolute left-0 right-0 mt-1 rounded-md shadow-lg z-30 overflow-hidden" style="background: var(--bg-surface-primary); border: 0.5px solid var(--border-default)">
+                ${presetKeys.map(v => {
+                  const isSelected = !isCustom && cb === v;
+                  return `<button type="button" data-callback-key="${v}" class="callback-option w-full text-left px-3 py-2 text-sm leading-[18px] hover:bg-stone-50 ${isSelected ? 'bg-stone-50/60 font-medium' : ''}" style="color: var(--fg-primary)">${presetMap[v]}</button>`;
+                }).join('')}
+                <button type="button" data-callback-key="custom" class="callback-option w-full text-left px-3 py-2 text-sm leading-[18px] hover:bg-stone-50 ${isCustom ? 'bg-stone-50/60 font-medium' : ''}" style="color: var(--fg-primary); border-top: 0.5px solid var(--border-default)">Custom…</button>
+              </div>
+            </div>
+            <input id="callback-custom" type="text" placeholder="e.g. Within 30 minutes during business hours" value="${isCustom ? escapeAttr(cb) : ''}" class="${isCustom ? '' : 'hidden'} w-full h-8 rounded-md px-3 text-sm leading-[18px] focus:outline-none" style="background: var(--bg-surface-primary); border: 0.5px solid var(--border-default); color: var(--fg-primary)" />
+          </div>`;
+          })()}
+
+          <!-- Custom instructions (Figma 4:7864) -->
+          <div class="flex flex-col gap-2 w-full">
+            <p class="text-sm font-medium leading-[18px]" style="color: var(--fg-primary)">Custom instructions</p>
+            <div class="flex flex-col gap-1.5 rounded-lg overflow-clip p-2.5 h-[225px]" style="background: var(--bg-surface-primary); border: 0.5px solid var(--border-default)">
+              <textarea
+                id="prompt-textarea"
+                data-intent-id="${intent.id}"
+                maxlength="${PROMPT_LIMIT}"
+                oninput="handlePromptInput(this)"
+                placeholder="eg. If caller wants to refill medication, ask caller to contact pharmacy first."
+                class="w-full flex-1 block text-sm leading-[18px] resize-none focus:outline-none bg-transparent border-0 p-0"
+                style="color: var(--fg-primary)"
+              >${prompt}</textarea>
+              <span id="prompt-counter" class="text-xs tabular-nums leading-4 shrink-0" style="color: var(--fg-tertiary)">${prompt.length}/${PROMPT_LIMIT}</span>
+            </div>
+            <div id="prose-warning-slot" data-intent-id="${intent.id}"></div>
+          </div>
+        </div>`;
+
+      // ─── Post-call tab content (Figma 4:7449) ──────────────────────────────
+      const postTab = `
+        <div data-tab-content="post" class="flex flex-col gap-6 w-full ${activeTab === 'post' ? '' : 'hidden'}">
+
+          <!-- Call summary goes to -->
+          <div class="flex flex-col gap-2 w-full">
+            <p class="text-sm font-medium leading-[18px]" style="color: var(--fg-primary)">Call summary goes to</p>
+            <div class="relative">
+              <button id="inbox-trigger" type="button" class="w-full h-8 flex items-center justify-center gap-1 rounded-md pl-3 pr-2 transition" style="background: var(--bg-surface-primary); border: 0.5px solid var(--border-default)">
+                <span class="flex-1 text-left text-sm leading-[18px]" style="color: var(--fg-primary)">${currentInbox.label}</span>
+                ${caretUpDownSvg}
+              </button>
+              <div id="inbox-menu" class="hidden add-dropdown absolute left-0 right-0 mt-1 rounded-md shadow-lg z-30 overflow-hidden" style="background: var(--bg-surface-primary); border: 0.5px solid var(--border-default)">
+                ${inboxOptions.map(opt => `
+                  <button type="button" data-inbox-key="${opt.key}" class="inbox-option w-full text-left px-3 py-2 text-sm leading-[18px] hover:bg-stone-50 ${opt.key === action.inbox ? 'bg-stone-50/60 font-medium' : ''}" style="color: var(--fg-primary)">${opt.label}</button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Email notification toggle + Email goes to (grouped, Figma 4:7459) -->
+          <div class="flex flex-col gap-3 w-full">
+            <div class="flex items-center justify-between w-full">
+              <p class="text-sm font-medium leading-[18px]" style="color: var(--fg-primary)">Email notification</p>
+              <button id="email-toggle" type="button" role="switch" aria-checked="${emailEnabled}" class="relative h-4 w-7 rounded-full p-0.5 transition" style="background: ${emailEnabled ? 'var(--bg-inverted)' : '#d4d3cf'}">
+                <span class="block w-3 h-3 rounded-full transition" style="background: var(--fg-inverted); border: 1.3px solid var(--bg-inverted); transform: translateX(${emailEnabled ? '12px' : '0px'})"></span>
+              </button>
+            </div>
+            ${emailEnabled ? `
+            <div class="flex flex-col gap-2 w-full">
+              <p class="text-sm leading-[18px]" style="color: var(--fg-primary)">Email goes to</p>
+              <input id="email-input" type="email" value="${emailTo}" class="w-full h-8 rounded-md px-2 text-sm leading-[18px] focus:outline-none" style="background: var(--bg-surface-primary); border: 0.5px solid var(--border-default); color: var(--fg-primary)" />
+            </div>
+            ` : ''}
+          </div>
+        </div>`;
+
+      return `
+        <div class="px-4 py-3 flex flex-col gap-6">
+          ${tabs}
+          ${duringTab}
+          ${postTab}
         </div>
       `;
     }
@@ -585,38 +1827,38 @@
     function refreshIntentNodeCard(intent) {
       const $intent = document.querySelector(`[data-node-id="intent-${intent.id}"]`);
       if (!$intent) return;
-      const oldTop = $intent.style.top;
-      const newNode = makeIntentNode(intent, parseInt(oldTop, 10));
-      newNode.classList.add('selected');
+      const oldLeft = parseInt($intent.style.left, 10);
+      const oldTop = parseInt($intent.style.top, 10);
+      const newNode = makeIntentCard(intent, oldLeft, oldTop);
       $intent.replaceWith(newNode);
     }
 
     function renderActionDropdown(currentType) {
       const k = ACTION_KINDS[currentType];
       return `
-        <div>
-          <label class="text-xs font-medium text-stone-700">Sage should…</label>
-          <div class="relative mt-1.5">
-            <button id="action-dropdown-trigger" class="w-full px-3 py-2.5 text-sm bg-white border border-stone-200 rounded-md flex items-center justify-between hover:border-stone-400 focus:outline-none focus:border-stone-400">
-              <span class="flex items-center gap-2.5">
-                <span class="text-base">${k.icon}</span>
-                <span class="text-stone-900 font-medium">${k.label}</span>
+        <div class="flex flex-col gap-2 w-full">
+          <label class="text-sm font-medium text-[#21201d] leading-[18px]">The agent should…</label>
+          <div class="relative">
+            <button id="action-dropdown-trigger" type="button" class="w-full bg-white border border-[rgba(33,32,29,0.2)] rounded-md flex items-center justify-center gap-1.5 pl-3 pr-2 py-2 hover:border-stone-400 transition opacity-90" style="border-width: 0.5px">
+              <span class="flex-1 text-left text-sm text-[#21201d] leading-[18px] flex items-center gap-2">
+                <span class="w-4 h-4 inline-flex items-center justify-center" style="color:${k.iconColor}">${ICON_SVG[k.iconSvg]}</span>
+                <span>${k.label}</span>
               </span>
-              <span class="text-stone-400">▾</span>
+              <span class="inline-flex items-center justify-center w-5 h-5 text-[#8e8c88]">
+                <svg width="16" height="16" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="80 176 128 224 176 176"/>
+                  <polyline points="80 80 128 32 176 80"/>
+                </svg>
+              </span>
             </button>
-            <div id="action-dropdown-menu" class="hidden add-dropdown absolute left-0 right-0 mt-1.5 bg-white border border-stone-200 rounded-xl shadow-lg z-30 overflow-hidden">
-              ${Object.entries(ACTION_KINDS).map(([key, kk]) => {
-                const disabled = kk.requiresEhr && !EHR_INTEGRATION_ENABLED;
+            <div id="action-dropdown-menu" class="hidden add-dropdown absolute left-0 right-0 mt-1 bg-white border border-stone-200 rounded-md shadow-lg z-30 overflow-hidden">
+              ${Object.entries(ACTION_KINDS).filter(([_k, kk]) => !kk.hidden).map(([key, kk]) => {
                 const isSelected = currentType === key;
                 return `
-                  <button ${disabled ? 'disabled' : `data-action-type="${key}"`} class="action-dropdown-option w-full text-left px-3 py-2.5 flex items-start gap-2.5 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-stone-50'} ${isSelected ? 'bg-stone-50/60' : ''} border-b border-stone-100 last:border-0">
-                    <span class="text-base mt-0.5">${kk.icon}</span>
-                    <div class="flex-1 min-w-0">
-                      <div class="text-sm text-stone-900 ${isSelected ? 'font-medium' : ''}">${kk.label}</div>
-                      <div class="text-xs text-stone-500">${kk.desc}</div>
-                      ${disabled ? `<div class="text-[11px] text-amber-700 mt-1 flex items-center gap-1"><span>🔒</span> Requires EHR integration</div>` : ''}
-                    </div>
-                    ${isSelected ? '<span class="text-stone-900 text-sm">✓</span>' : ''}
+                  <button data-action-type="${key}" class="action-dropdown-option w-full text-left px-3 py-2 flex items-center gap-2.5 hover:bg-stone-50 ${isSelected ? 'bg-stone-50/60' : ''}">
+                    <span class="w-4 h-4 inline-flex items-center justify-center" style="color:${kk.iconColor}">${ICON_SVG[kk.iconSvg]}</span>
+                    <span class="flex-1 text-sm text-[#21201d] ${isSelected ? 'font-medium' : ''}">${kk.label}</span>
+                    ${isSelected ? `<span class="text-stone-900 w-3.5 h-3.5 inline-flex items-center justify-center">${ICON_SVG.check}</span>` : ''}
                   </button>
                 `;
               }).join('')}
@@ -632,20 +1874,20 @@
         if (!action.targets) action.targets = action.target ? [action.target] : [''];
         const targets = action.targets;
         return `
-          <div class="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-3">
+          <div class="flex flex-col gap-2 w-full">
             <div class="flex items-center justify-between">
-              <label class="text-xs font-medium text-stone-700">Transfer to phone number${targets.length > 1 ? 's' : ''}</label>
-              ${targets.length > 1 ? `<span class="text-[11px] text-stone-500">Rings all simultaneously</span>` : ''}
+              <label class="text-sm font-medium text-[#21201d] leading-[18px]">Transfer to phone number${targets.length > 1 ? 's' : ''}</label>
+              ${targets.length > 1 ? `<span class="text-[11px] text-[#8e8c88]">Rings all simultaneously</span>` : ''}
             </div>
-            <div class="space-y-2" id="transfer-targets">
+            <div class="flex flex-col gap-1.5" id="transfer-targets">
               ${targets.map((t, i) => `
                 <div class="flex items-center gap-1.5">
-                  <input type="text" value="${t}" data-target-idx="${i}" class="transfer-target-input flex-1 px-3 py-2 text-sm border border-stone-200 rounded-md font-mono bg-white focus:outline-none focus:border-stone-400" placeholder="(415) 555-0000" />
-                  ${targets.length > 1 ? `<button data-remove-idx="${i}" class="transfer-target-remove w-8 h-8 flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-white rounded-md">×</button>` : ''}
+                  <input type="text" value="${t}" data-target-idx="${i}" class="transfer-target-input flex-1 bg-white border border-[rgba(33,32,29,0.2)] rounded-md px-3 py-2 text-sm text-[#21201d] focus:outline-none focus:border-stone-400 leading-[18px]" style="border-width: 0.5px" placeholder="(415) 555-0000" />
+                  ${targets.length > 1 ? `<button data-remove-idx="${i}" class="transfer-target-remove w-8 h-8 flex items-center justify-center text-stone-400 hover:text-red-600 rounded-md">×</button>` : ''}
                 </div>
               `).join('')}
             </div>
-            <button id="transfer-add-target" class="w-full px-3 py-2 text-xs text-stone-500 hover:text-stone-900 border border-dashed border-stone-300 rounded-md hover:border-stone-400 text-left">+ Add another number</button>
+            <button id="transfer-add-target" class="self-start mt-1 text-sm text-[#8e8c88] hover:text-[#21201d] leading-[18px] transition">+ Add another number</button>
           </div>
         `;
       }
@@ -660,13 +1902,13 @@
 
         return `
           <!-- 1. Structured intake fields (collapsed by default) -->
-          <div class="bg-stone-50 border border-stone-200 rounded-xl overflow-hidden">
+          <div class="overflow-hidden">
             <button type="button" data-section="intake" class="section-toggle w-full p-4 flex items-center justify-between hover:bg-stone-100/50">
               <div class="flex items-baseline gap-2">
                 <span class="text-xs font-medium text-stone-700">Required intake fields</span>
                 <span class="text-[11px] text-stone-400">${collect.length} field${collect.length === 1 ? '' : 's'}</span>
               </div>
-              <span class="section-chevron text-stone-400 text-xs transition-transform">▾</span>
+              <svg width="12" height="12" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" class="section-chevron text-stone-400 transition-transform"><polyline points="208 96 128 176 48 96"/></svg>
             </button>
             <div data-section-content="intake" class="section-content hidden px-4 pb-4">
 
@@ -716,29 +1958,29 @@
           </div>
 
           <!-- 2. Free-text rider (collapsed by default) -->
-          <div class="bg-stone-50 border border-stone-200 rounded-xl overflow-hidden">
+          <div class="overflow-hidden">
             <button type="button" data-section="instructions" class="section-toggle w-full p-4 flex items-center justify-between hover:bg-stone-100/50">
               <div class="flex items-baseline gap-2">
                 <span class="text-xs font-medium text-stone-700">Additional instructions</span>
-                <span class="text-[11px] text-stone-400 font-normal">optional</span>
                 ${len > 0 ? `<span class="text-[11px] text-stone-400">${len} chars</span>` : ''}
               </div>
-              <span class="section-chevron text-stone-400 text-xs transition-transform">▾</span>
+              <svg width="12" height="12" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" class="section-chevron text-stone-400 transition-transform"><polyline points="208 96 128 176 48 96"/></svg>
             </button>
             <div data-section-content="instructions" class="section-content hidden px-4 pb-4">
-              <div class="flex items-baseline justify-end mb-2">
-                <span id="prompt-counter" class="text-[11px] tabular-nums ${warn ? 'text-amber-600' : 'text-stone-400'}">${len}/${PROMPT_LIMIT}</span>
+              <div class="relative">
+                <textarea
+                  id="prompt-textarea"
+                  data-intent-id="${intentId || ''}"
+                  maxlength="${PROMPT_LIMIT}"
+                  oninput="handlePromptInput(this)"
+                  placeholder="e.g., If the caller mentions a medication, ask which one. Note any preferred follow-up time."
+                  class="w-full h-24 p-3 pb-7 text-sm bg-white border border-stone-200 rounded-md resize-none focus:outline-none focus:border-stone-400"
+                >${prompt}</textarea>
+                <span id="prompt-counter" class="absolute bottom-2 left-3 text-[11px] tabular-nums ${warn ? 'text-amber-600' : 'text-stone-400'} pointer-events-none">${len}/${PROMPT_LIMIT} characters</span>
               </div>
-              <textarea
-                id="prompt-textarea"
-                data-intent-id="${intentId || ''}"
-                maxlength="${PROMPT_LIMIT}"
-                oninput="handlePromptInput(this)"
-                placeholder="e.g., If the caller mentions a medication, ask which one. Note any preferred follow-up time."
-                class="w-full h-24 p-3 text-sm bg-white border border-stone-200 rounded-md resize-none focus:outline-none focus:border-stone-400"
-              >${prompt}</textarea>
+              <div id="prose-warning-slot" data-intent-id="${intentId || ''}" class="mt-3"></div>
               <div class="mt-2 space-y-1 text-[11px] text-stone-500 leading-snug">
-                <div><strong class="text-stone-700">Will shape</strong>: which follow-up questions Sage asks, tone, what gets noted.</div>
+                <div><strong class="text-stone-700">Will shape</strong>: which follow-up questions the agent asks, tone, what gets noted.</div>
                 <div><strong class="text-stone-700">Won't change</strong>: structured fields above or the inbox below.</div>
               </div>
             </div>
@@ -762,7 +2004,7 @@
         const has = (k) => caps.includes(k);
         return `
           <div class="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-3">
-            <label class="text-xs font-medium text-stone-700">What Sage can do in the EHR</label>
+            <label class="text-xs font-medium text-stone-700">What the agent can do in the EHR</label>
             <div class="space-y-1.5">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" ${has('book') ? 'checked' : ''} data-cap="book" class="schedule-cap rounded border-stone-300"/>
@@ -785,6 +2027,41 @@
     }
 
     function wirePanelInteractions(intent) {
+      // Action-menu options are wired ONCE on load via delegation on the menu
+      // container. Here we just refresh the active intent reference.
+      _activeIntentForActionMenu = intent;
+
+      // ── Tabs: During the call / Post call (Figma 4:6480) ─────────────────
+      $panelBody.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const tab = btn.dataset.tab;
+          intent.action._activeTab = tab;
+          // Re-render to swap active tab styling + show/hide content
+          $panelBody.innerHTML = renderIntentBody(intent);
+          wirePanelInteractions(intent);
+        });
+      });
+
+      // ── Email notification toggle (Post-call tab) ────────────────────────
+      const emailToggle = document.getElementById('email-toggle');
+      if (emailToggle) {
+        emailToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          intent.action.emailEnabled = !(intent.action.emailEnabled !== false);
+          $panelBody.innerHTML = renderIntentBody(intent);
+          wirePanelInteractions(intent);
+          markDirty();
+        });
+      }
+      const emailInput = document.getElementById('email-input');
+      if (emailInput) {
+        emailInput.addEventListener('input', () => {
+          intent.action.emailTo = emailInput.value;
+          markDirty();
+        });
+      }
+
       // Action dropdown trigger
       const trigger = document.getElementById('action-dropdown-trigger');
       const menu = document.getElementById('action-dropdown-menu');
@@ -819,6 +2096,143 @@
         fieldTrigger.addEventListener('click', (e) => {
           e.stopPropagation();
           fieldMenu.classList.toggle('hidden');
+        });
+      }
+
+      // Inbox dropdown (Figma "Request goes to..." selector)
+      const inboxTrigger = document.getElementById('inbox-trigger');
+      const inboxMenu    = document.getElementById('inbox-menu');
+      if (inboxTrigger && inboxMenu) {
+        inboxTrigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          inboxMenu.classList.toggle('hidden');
+        });
+        $panelBody.querySelectorAll('.inbox-option').forEach(opt => {
+          opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            intent.action.inbox = opt.dataset.inboxKey;
+            inboxMenu.classList.add('hidden');
+            $panelBody.innerHTML = renderIntentBody(intent);
+            wirePanelInteractions(intent);
+            refreshActionNodeCard(intent);
+            markDirty();
+          });
+        });
+      }
+
+      // Call back expectation dropdown — same UX pattern as inbox.
+      // "Custom…" reveals an input field below; selecting any preset hides it.
+      const callbackTrigger = document.getElementById('callback-trigger');
+      const callbackMenu    = document.getElementById('callback-menu');
+      const callbackInput   = document.getElementById('callback-custom');
+      const callbackLabel   = document.getElementById('callback-trigger-label');
+      if (callbackTrigger && callbackMenu) {
+        callbackTrigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          callbackMenu.classList.toggle('hidden');
+        });
+        const PRESET_LABELS = {within_1h:'Within 1 hour',within_4h:'Within 4 hours',within_1bd:'Within 1 business day',within_2bd:'Within 2 business days',within_week:'Within the week'};
+        $panelBody.querySelectorAll('.callback-option').forEach(opt => {
+          opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const key = opt.dataset.callbackKey;
+            callbackMenu.classList.add('hidden');
+            if (key === 'custom') {
+              // Switch to custom input — preserve any existing custom text, default to empty
+              const presetKeys = Object.keys(PRESET_LABELS);
+              const wasCustom = intent.action.callbackExpectation && !presetKeys.includes(intent.action.callbackExpectation);
+              if (!wasCustom) intent.action.callbackExpectation = '';
+              if (callbackInput) { callbackInput.classList.remove('hidden'); callbackInput.focus(); }
+              if (callbackLabel) callbackLabel.textContent = intent.action.callbackExpectation || 'Custom…';
+            } else {
+              intent.action.callbackExpectation = key;
+              if (callbackInput) { callbackInput.classList.add('hidden'); callbackInput.value = ''; }
+              if (callbackLabel) callbackLabel.textContent = PRESET_LABELS[key];
+            }
+            // Update menu selection styling without a full re-render (preserves focus)
+            $panelBody.querySelectorAll('.callback-option').forEach(o => o.classList.remove('bg-stone-50/60','font-medium'));
+            opt.classList.add('bg-stone-50/60','font-medium');
+            markDirty();
+          });
+        });
+        if (callbackInput) {
+          callbackInput.addEventListener('input', () => {
+            intent.action.callbackExpectation = callbackInput.value;
+            if (callbackLabel) callbackLabel.textContent = callbackInput.value || 'Custom…';
+            markDirty();
+          });
+        }
+      }
+
+      // Intake-question checkboxes — unchecking removes from collect
+      $panelBody.querySelectorAll('.intake-checkbox[data-field-key]').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const key = cb.dataset.fieldKey;
+          if (!intent.action.collect) intent.action.collect = [];
+          if (cb.checked) {
+            if (!intent.action.collect.some(f => f.key === key)) {
+              intent.action.collect.push({ key, required: true });
+            }
+          } else {
+            intent.action.collect = intent.action.collect.filter(f => f.key !== key);
+            $panelBody.innerHTML = renderIntentBody(intent);
+            wirePanelInteractions(intent);
+          }
+          refreshActionNodeCard(intent);
+          markDirty();
+        });
+      });
+
+      // Add new intake field — clicking "Add new" swaps the button for a
+      // free-text input where the user types their own question, then commits
+      // on Enter or blur. Escape cancels.
+      const addIntakeTrigger = document.getElementById('add-intake-trigger');
+      const addIntakeInput   = document.getElementById('add-intake-input');
+      if (addIntakeTrigger && addIntakeInput) {
+        // BUG FIX: Enter calls commit() synchronously, which re-renders the
+        // panel and detaches this input. The detached element still fires
+        // `blur`, and the deferred blur handler would call commit() a second
+        // time — creating a duplicate row with the same label but a fresh
+        // Date.now() key. The `done` flag short-circuits any second call.
+        let done = false;
+        const showInput = () => {
+          done = false;
+          addIntakeTrigger.classList.add('hidden');
+          addIntakeInput.classList.remove('hidden');
+          addIntakeInput.value = '';
+          setTimeout(() => addIntakeInput.focus(), 0);
+        };
+        const restore = () => {
+          done = true;
+          addIntakeInput.classList.add('hidden');
+          addIntakeInput.value = '';
+          addIntakeTrigger.classList.remove('hidden');
+        };
+        const commit = () => {
+          if (done) return;
+          const text = addIntakeInput.value.trim();
+          if (!text) { restore(); return; }
+          done = true;
+          if (!intent.action.collect) intent.action.collect = [];
+          intent.action.collect.push({
+            key: `custom_${Date.now()}`,
+            label: text,
+            required: true,
+            custom: true,
+          });
+          $panelBody.innerHTML = renderIntentBody(intent);
+          wirePanelInteractions(intent);
+          refreshActionNodeCard(intent);
+          markDirty();
+        };
+        addIntakeTrigger.addEventListener('click', (e) => { e.stopPropagation(); showInput(); });
+        addIntakeInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commit(); }
+          else if (e.key === 'Escape') { e.preventDefault(); restore(); }
+        });
+        addIntakeInput.addEventListener('blur', () => {
+          // Slight delay so a click elsewhere doesn't race the blur event when committing
+          setTimeout(() => { if (!done) commit(); }, 100);
         });
       }
 
@@ -998,6 +2412,9 @@
 
     function markDirty() {
       persistFlows(); // always persist — keeps localStorage in sync on every edit
+      // The green customization dot on the canvas only appears AFTER Save (see
+      // panel-save click handler), not during in-flight edits.
+      updateSaveDiscardState();
       if (isDirty) return;
       isDirty = true;
       const pill = document.getElementById('draft-pill');
@@ -1005,24 +2422,38 @@
       const btn = document.getElementById('publish-btn');
       if (btn) {
         btn.disabled = false;
-        btn.className = 'text-sm bg-stone-900 text-white px-3 py-1.5 rounded-md hover:bg-stone-800';
+        btn.className = 'h-9 text-sm font-medium bg-[#21201d] text-white px-3 rounded-md hover:bg-stone-800 transition leading-5';
       }
     }
 
     function markPublished() {
       isDirty = false;
+      // Reset per-intent baselines so the green customization dots clear
+      captureIntentBaselines();
+      render();
       const pill = document.getElementById('draft-pill');
       if (pill) pill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> All published';
       const btn = document.getElementById('publish-btn');
       if (btn) {
         btn.disabled = true;
-        btn.className = 'text-sm bg-stone-200 text-stone-400 px-3 py-1.5 rounded-md cursor-not-allowed';
+        btn.className = 'h-9 text-sm font-medium bg-stone-100 text-stone-400 px-3 rounded-md cursor-not-allowed leading-5';
       }
     }
 
     document.getElementById('panel-save').addEventListener('click', () => {
+      if (document.getElementById('panel-save').disabled) return;
+      // Refresh the snapshot so this is now the new baseline (re-opening the panel
+      // shouldn't immediately show as dirty).
+      if (_editingIntent) _editingSnapshot = intentSnapshot(_editingIntent);
+      // Saving = commit the change → flip the green customization dot on the node.
+      const savedIntent = _activeIntentForActionMenu || _editingIntent;
+      if (savedIntent) refreshIntentNodeCard(savedIntent);
       markDirty();
       closePanel();
+    });
+    document.getElementById('panel-discard').addEventListener('click', () => {
+      if (document.getElementById('panel-discard').disabled) return;
+      discardPanelChanges();
     });
     const publishBtn = document.getElementById('publish-btn');
     if (publishBtn) publishBtn.addEventListener('click', () => { if (!publishBtn.disabled) markPublished(); });
@@ -1048,22 +2479,99 @@
     document.getElementById('panel-cancel').addEventListener('click', closePanel);
     function closePanel() {
       $sidePanel.classList.add('hidden');
-      document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('selected'));
+      selectedNodeId = null;
+      // Clear the per-intent edit snapshot so the next openIntentPanel takes
+      // a fresh one and Save/Discard reset to disabled.
+      _editingIntent = null;
+      _editingSnapshot = null;
+      render();
     }
 
-    document.querySelectorAll('.mode-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.mode-tab').forEach(t => {
-          t.classList.remove('bg-white', 'text-stone-900', 'shadow-sm');
-          t.classList.add('text-stone-600');
+    // Delete the currently open intent from the active mode.
+    // Welcome node is not deletable (skip cleanly).
+    document.getElementById('panel-delete').addEventListener('click', () => {
+      if (!selectedNodeId || !selectedNodeId.startsWith('intent-')) return;
+      const intentId = selectedNodeId.slice('intent-'.length);
+      const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
+      if (!intent) return;
+      if (!confirm(`Delete the "${intent.name}" intent? This affects the "${shortModeLabel(FLOWS[activeMode].label)}" time block only.`)) return;
+      FLOWS[activeMode].intents = FLOWS[activeMode].intents.filter(i => i.id !== intentId);
+      // Clear any dismissed-warning state for this intent
+      dismissedHashes.delete(intentId);
+      markDirty();
+      closePanel();
+    });
+
+    // ============================================================
+    // Time-block dropdown (header)
+    // 24/7 is the default, always-on mode. Lunch/After hours/etc. are
+    // custom overrides — the user can add more via "+ Add time block".
+    // ============================================================
+    const $modeTrigger = document.getElementById('mode-trigger');
+    const $modeMenu = document.getElementById('mode-menu');
+    const $modeOptions = document.getElementById('mode-options');
+
+    function renderModeOptions() {
+      const keys = Object.keys(FLOWS);
+      $modeOptions.innerHTML = keys.map(key => {
+        const flow = FLOWS[key];
+        const isActive = key === activeMode;
+        const [primary, ...rest] = (flow.label || '').split('·');
+        const subtitle = rest.join('·').trim();
+        return `
+          <button data-mode="${key}" class="mode-option w-full text-left px-3 py-2 hover:bg-stone-50 flex items-center gap-2.5 ${isActive ? 'bg-stone-50/70' : ''}">
+            <span class="w-1.5 h-1.5 rounded-full ${modeDotClass(key)} shrink-0"></span>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm text-stone-900">${primary.trim()}</div>
+              ${subtitle ? `<div class="text-xs text-stone-500 truncate">${subtitle}</div>` : ''}
+            </div>
+            ${isActive ? `<span class="text-stone-900 w-3.5 h-3.5 inline-flex items-center justify-center">${ICON_SVG.check}</span>` : ''}
+          </button>
+        `;
+      }).join('');
+      $modeOptions.querySelectorAll('.mode-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeMode = btn.dataset.mode;
+          $modeMenu.classList.add('hidden');
+          closePanel();
+          render();
         });
-        tab.classList.remove('text-stone-600');
-        tab.classList.add('bg-white', 'text-stone-900', 'shadow-sm');
-        activeMode = tab.dataset.mode;
+      });
+    }
+
+    if ($modeTrigger && $modeMenu) {
+      $modeTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        renderModeOptions();
+        $modeMenu.classList.toggle('hidden');
+      });
+      document.addEventListener('click', (e) => {
+        if ($modeMenu.classList.contains('hidden')) return;
+        if ($modeMenu.contains(e.target) || $modeTrigger.contains(e.target)) return;
+        $modeMenu.classList.add('hidden');
+      });
+    }
+
+    const $addTimeBlock = document.getElementById('add-time-block');
+    if ($addTimeBlock) {
+      $addTimeBlock.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const name = window.prompt('Name this time block (e.g., "Saturday morning")');
+        if (!name) return;
+        const id = `block_${Date.now()}`;
+        // Seed the new block from the current 24/7 default so the user has something to override.
+        FLOWS[id] = {
+          label: `${name} · custom block`,
+          custom: true,
+          intents: JSON.parse(JSON.stringify(FLOWS['business'].intents)),
+        };
+        activeMode = id;
+        $modeMenu.classList.add('hidden');
+        markDirty();
         closePanel();
         render();
       });
-    });
+    }
 
     const $drawer = document.getElementById('test-drawer');
     const $drawerIcon = document.getElementById('test-toggle-icon');
@@ -1103,7 +2611,7 @@
       testState.messages = [];
       const intent = currentTestIntent();
       document.getElementById('test-transcript').innerHTML = intent
-        ? `<div class="text-xs text-stone-400 italic">Testing <strong>${intent.name}</strong> (${intent.action.type}). Type as the caller below. Sage's response uses the real production system prompt + your draft config.</div>`
+        ? `<div class="text-xs text-stone-400 italic">Testing <strong>${intent.name}</strong> (${intent.action.type}). Type as the caller below. The agent's response uses the real production system prompt + your draft config.</div>`
         : '';
     }
 
@@ -1136,7 +2644,7 @@
 
       testState.messages.push({ role: 'user', content: text });
       appendTestMessage('user', text);
-      const thinkingEl = appendTestMessage('assistant', 'Sage is thinking…', { thinking: true });
+      const thinkingEl = appendTestMessage('assistant', 'Thinking…', { thinking: true });
 
       try {
         const resp = await fetch('/api/chat', {
@@ -1261,22 +2769,37 @@
       $zoomPct.textContent = `${Math.round(zoom * 100)}%`;
     }
 
-    // Wheel: pan by default; zoom when cmd/ctrl held (or trackpad pinch which sends ctrlKey)
+    // Promote the canvas to a composited layer only while the user is actively
+    // panning/zooming. After 200ms of stillness, drop the will-change so the
+    // browser re-rasterizes the layer at the new scale → crisp text and lines.
+    let interactingTimer = null;
+    function markInteracting() {
+      $transform.classList.add('interacting');
+      if (interactingTimer) clearTimeout(interactingTimer);
+      interactingTimer = setTimeout(() => $transform.classList.remove('interacting'), 200);
+    }
+
+    // Wheel: zoom centered on the cursor by default. Hold shift to pan with the wheel.
     $viewport.addEventListener('wheel', (e) => {
       e.preventDefault();
-      if (e.ctrlKey || e.metaKey) {
+      markInteracting();
+      if (e.shiftKey) {
+        // Shift+wheel pans (mouse users without a trackpad / horizontal scroll)
+        panX -= e.deltaX || e.deltaY;
+        panY -= e.shiftKey ? 0 : e.deltaY;
+      } else {
         const rect = $viewport.getBoundingClientRect();
         const cx = e.clientX - rect.left;
         const cy = e.clientY - rect.top;
         const oldZoom = zoom;
-        const delta = -e.deltaY * 0.01;
+        // Trackpad pinch sends a larger deltaY with ctrlKey; mouse wheel sends ~100 increments.
+        // Normalize by clamping so a single notch doesn't slingshot you to the zoom limit.
+        const rawDelta = -e.deltaY;
+        const delta = Math.max(-0.25, Math.min(0.25, rawDelta * 0.005));
         zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom * (1 + delta)));
         const k = zoom / oldZoom;
         panX = cx - (cx - panX) * k;
         panY = cy - (cy - panY) * k;
-      } else {
-        panX -= e.deltaX;
-        panY -= e.deltaY;
       }
       applyTransform();
     }, { passive: false });
@@ -1299,6 +2822,7 @@
       panY += e.clientY - lastY;
       lastX = e.clientX;
       lastY = e.clientY;
+      markInteracting();
       applyTransform();
     });
     window.addEventListener('mouseup', () => {
@@ -1314,6 +2838,7 @@
       const k = zoom / oldZoom;
       panX = cx - (cx - panX) * k;
       panY = cy - (cy - panY) * k;
+      markInteracting();
       applyTransform();
     }
 
@@ -1336,12 +2861,88 @@
       if (counter) {
         const len = textarea.value.length;
         counter.textContent = `${len}/${PROMPT_LIMIT}`;
-        counter.className = `text-[11px] tabular-nums ${len > 400 ? 'text-amber-600' : 'text-stone-400'}`;
+        counter.className = `text-xs tabular-nums leading-[16px] ${len > 400 ? 'text-amber-600' : 'text-[#8e8c88]'}`;
       }
+      const ph = document.getElementById('prompt-placeholder');
+      if (ph) ph.classList.toggle('hidden', textarea.value.length > 0);
+      // Debounce the capability check (~600ms after last keystroke)
+      scheduleProseClassify(intentId, textarea.value);
       // Repaint the canvas action card so the customization tint reflects the current state
       refreshActionNodeCard(intent);
       markDirty();
     }
+
+    // ============================================================
+    // Capability-warning render pipeline.
+    //   • Debounce 600ms after user stops typing
+    //   • Render synchronously (regex classify is local; no AI call)
+    //   • Dismiss is in-memory per (intentId, prose hash) — pose change clears it
+    //   • Never blocks save; absence is acceptable
+    // ============================================================
+    let proseClassifyTimer = null;
+
+    function scheduleProseClassify(intentId, text) {
+      if (proseClassifyTimer) clearTimeout(proseClassifyTimer);
+      proseClassifyTimer = setTimeout(() => renderProseWarning(intentId, text), 600);
+    }
+
+    function renderProseWarning(intentId, text) {
+      const slot = document.querySelector(`#prose-warning-slot[data-intent-id="${intentId}"]`);
+      if (!slot) return;
+      const hash = hashProse(text || '');
+      const dismissedSet = dismissedHashes.get(intentId) || new Set();
+      if (dismissedSet.has(hash) || !text || !text.trim()) { slot.innerHTML = ''; return; }
+      const violations = classifyProse(text);
+      if (violations.length === 0) { slot.innerHTML = ''; return; }
+
+      // Figma 33:1596 — amber inline alert (no shadow, no heading, just body + dismiss).
+      // Multiple violations stack as separate alert cards so each card matches the spec
+      // exactly. Each card is individually dismissable.
+      slot.innerHTML = `<div class="flex flex-col gap-2">${violations.map((v, i) => `
+        <div class="warning-card flex items-center gap-2 pl-3 pr-2 py-3 rounded-md"
+             data-violation-idx="${i}"
+             style="background: rgba(167, 109, 0, 0.08); border: 0.5px solid rgba(167, 109, 0, 0.2);">
+          <span class="inline-flex items-center justify-center shrink-0" style="width:20px;height:20px;color:#a76d00;">
+            <svg viewBox="0 0 256 256" width="20" height="20" fill="currentColor" aria-hidden="true">
+              <path d="M236.8 188.09L149.35 36.22a24.76 24.76 0 0 0-42.7 0L19.2 188.09a23.51 23.51 0 0 0 0 23.72A24.35 24.35 0 0 0 40.55 224h174.9a24.35 24.35 0 0 0 21.33-12.19 23.51 23.51 0 0 0 .02-23.72ZM120 104a8 8 0 0 1 16 0v40a8 8 0 0 1-16 0Zm8 88a12 12 0 1 1 12-12 12 12 0 0 1-12 12Z"/>
+            </svg>
+          </span>
+          <span class="flex-1 leading-[18px]" style="font-size:14px;font-weight:400;color:#21201d;">${v.issue}</span>
+          <button class="prose-warning-dismiss inline-flex items-center justify-center shrink-0 rounded-md hover:bg-black/5 transition"
+                  data-violation-idx="${i}"
+                  style="width:28px;height:28px;padding:4px;color:#21201d;"
+                  aria-label="Dismiss">
+            <svg width="16" height="16" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="200" y1="56"  x2="56"  y2="200"/>
+              <line x1="200" y1="200" x2="56"  y2="56"/>
+            </svg>
+          </button>
+        </div>
+      `).join('')}</div>`;
+
+      // Dismiss = hide all warnings for the current prose hash. (Per-card dismiss would
+      // require tracking dismissals at sub-hash granularity; the locked-in behavior is
+      // "dismiss until prose changes", so one click hides everything for this state.)
+      slot.querySelectorAll('.prose-warning-dismiss').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!dismissedHashes.has(intentId)) dismissedHashes.set(intentId, new Set());
+          dismissedHashes.get(intentId).add(hash);
+          slot.innerHTML = '';
+        });
+      });
+    }
+
+    // Run classification immediately when an intent panel opens with existing prose
+    // (so violations on already-saved instructions show up without typing).
+    const _origOpenIntentPanel = openIntentPanel;
+    openIntentPanel = function (intentId) {
+      _origOpenIntentPanel(intentId);
+      const intent = FLOWS[activeMode].intents.find(i => i.id === intentId);
+      if (intent?.action?.type === 'message') {
+        // Defer to next tick so the slot is in the DOM
+        setTimeout(() => renderProseWarning(intent.id, intent.action.prompt || ''), 0);
+      }
+    };
   </script>
 
 </body>
